@@ -431,7 +431,10 @@ twpConfig.onReady(function () {
 
     // translations options
     function updateAISettingsVisibility() {
-        $("#aiServiceSettings").style.display = $("#pageTranslatorService").value === "ai" ? "block" : "none"
+        const service = $("#pageTranslatorService").value
+        $("#aiServiceSettings").style.display = service === "ai" ? "block" : "none"
+        $("#deepseekSettings").style.display = service === "deepseek" ? "block" : "none"
+        $("#zhipuSettings").style.display = service === "zhipu" ? "block" : "none"
     }
 
     $("#pageTranslatorService").onchange = e => {
@@ -519,6 +522,97 @@ twpConfig.onReady(function () {
                 const prefix = chrome.i18n.getMessage("msgAIConnectionTestFailed") || "Connection test failed"
                 const suffix = response.message ? `: ${response.message}` : ""
                 setAIConnectionTestResult(prefix + suffix)
+            }
+        })
+    }
+
+    $("#deepseekApiKey").onchange = e => {
+        twpConfig.set("deepseekApiKey", e.target.value.trim())
+    }
+    $("#deepseekApiKey").value = twpConfig.get("deepseekApiKey")
+
+    function setDeepSeekTestResult(message, isSuccess = false) {
+        const el = $("#deepseekConnectionTestResult")
+        el.textContent = message || ""
+        el.style.color = isSuccess ? "#2e7d32" : "#c62828"
+    }
+
+    $("#btnTestDeepSeekConnection").onclick = () => {
+        const apiKey = $("#deepseekApiKey").value.trim()
+        twpConfig.set("deepseekApiKey", apiKey)
+        $("#btnTestDeepSeekConnection").setAttribute("disabled", "")
+        setDeepSeekTestResult("Testing...")
+        chrome.runtime.sendMessage({
+            action: "testAIConnection",
+            aiConfig: {
+                endpoint: "https://api.deepseek.com/v1/chat/completions",
+                apiKey,
+                model: "deepseek-chat",
+                temperature: 0.3,
+            }
+        }, response => {
+            $("#btnTestDeepSeekConnection").removeAttribute("disabled")
+            if (chrome.runtime.lastError) {
+                setDeepSeekTestResult("Connection test failed: " + chrome.runtime.lastError.message)
+                return
+            }
+            if (!response) {
+                setDeepSeekTestResult("Connection test failed")
+                return
+            }
+            if (response.ok) {
+                setDeepSeekTestResult("Connection succeeded" + (response.message ? `: ${response.message}` : ""), true)
+            } else {
+                setDeepSeekTestResult("Connection test failed" + (response.message ? `: ${response.message}` : ""))
+            }
+        })
+    }
+
+    $("#zhipuApiKey").onchange = e => {
+        twpConfig.set("zhipuApiKey", e.target.value.trim())
+    }
+    $("#zhipuApiKey").value = twpConfig.get("zhipuApiKey")
+
+    $("#zhipuModel").onchange = e => {
+        twpConfig.set("zhipuModel", e.target.value)
+    }
+    $("#zhipuModel").value = twpConfig.get("zhipuModel")
+
+    function setZhipuTestResult(message, isSuccess = false) {
+        const el = $("#zhipuConnectionTestResult")
+        el.textContent = message || ""
+        el.style.color = isSuccess ? "#2e7d32" : "#c62828"
+    }
+
+    $("#btnTestZhipuConnection").onclick = () => {
+        const apiKey = $("#zhipuApiKey").value.trim()
+        const model = $("#zhipuModel").value
+        twpConfig.set("zhipuApiKey", apiKey)
+        twpConfig.set("zhipuModel", model)
+        $("#btnTestZhipuConnection").setAttribute("disabled", "")
+        setZhipuTestResult("Testing...")
+        chrome.runtime.sendMessage({
+            action: "testAIConnection",
+            aiConfig: {
+                endpoint: "https://open.bigmodel.cn/api/coding/paas/v4/chat/completions",
+                apiKey,
+                model,
+                temperature: 0.3,
+            }
+        }, response => {
+            $("#btnTestZhipuConnection").removeAttribute("disabled")
+            if (chrome.runtime.lastError) {
+                setZhipuTestResult("Connection test failed: " + chrome.runtime.lastError.message)
+                return
+            }
+            if (!response) {
+                setZhipuTestResult("Connection test failed")
+                return
+            }
+            if (response.ok) {
+                setZhipuTestResult("Connection succeeded" + (response.message ? `: ${response.message}` : ""), true)
+            } else {
+                setZhipuTestResult("Connection test failed" + (response.message ? `: ${response.message}` : ""))
             }
         })
     }

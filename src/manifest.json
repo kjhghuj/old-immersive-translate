@@ -3,7 +3,7 @@
     "default_locale": "en",
     "name": "宇宙翻译",
     "description": "A smart web page translator powered by AI, Google and Yandex. Supports bilingual display, selected text translation, and customizable themes.",
-    "version": "0.0.41",
+    "version": "1.0.0",
     "homepage_url": "https://github.com/universe-translate/universe-translate",
 
     "browser_specific_settings": {

@@ -6,13 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="/w3css/4/w3.css">
     <link rel="stylesheet" href="options.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
 <body class="w3-content" style="max-width:1200px;">
     <nav class="w3-sidebar w3-bar-block w3-collapse w3-top" style="z-index:3; width:300px" id="sideBar">
-        <div class="w3-container w3-display-container w3-padding-16">
-            <h3 class="w3-wide"><b>Universe Translate</b></h3>
-            <p>__IMMERSIVE_TRANSLATE_VERSION__</p>
+        <div class="w3-container w3-display-container w3-padding-16 sidebar-header">
+            <div class="brand-icon">U</div>
+            <h3 class="brand-title">Universe Translate</h3>
+            <p class="brand-version">v__IMMERSIVE_TRANSLATE_VERSION__</p>
         </div>
         <div class="w3-padding-64 w3-large w3-text-grey" style="font-weight:bold">
             <a href="#main" class="w3-bar-item w3-button" data-i18n="msgCommon">Common</a>
@@ -192,7 +196,9 @@
                 <select id="pageTranslatorService" class="w3-select w3-margin">
                     <option value="google">Google</option>
                     <option value="yandex">Yandex</option>
-                    <option value="ai" data-i18n="lblAITranslationService">AI</option>
+                    <option value="ai" data-i18n="lblAITranslationService">Custom (AI)</option>
+                    <option value="deepseek">DeepSeek V3</option>
+                    <option value="zhipu">智谱 Coding Plan</option>
                 </select>
                 <div id="aiServiceSettings" class="w3-card w3-padding w3-margin-top w3-round">
                     <p><b data-i18n="lblAIConfiguration">AI translation configuration</b></p>
@@ -210,6 +216,27 @@
                     <p style="color:#999;" class="w3-margin-top" data-i18n="msgAISystemPromptHelp">Supports placeholders: {targetLanguage}, {sourceLanguage}</p>
                     <button id="btnTestAIConnection" class="w3-button w3-blue w3-round w3-margin-top" data-i18n="btnTestAIConnection">Test connection</button>
                     <div id="aiConnectionTestResult" class="w3-margin-top" style="min-height: 24px;"></div>
+                </div>
+                <div id="deepseekSettings" class="w3-card w3-padding w3-margin-top w3-round" style="display:none;">
+                    <p><b>DeepSeek V3 Configuration</b></p>
+                    <p style="color:#999;">Endpoint: https://api.deepseek.com/v1 &nbsp; Model: deepseek-chat</p>
+                    <p><b>API Key</b></p>
+                    <input id="deepseekApiKey" class="w3-input w3-border w3-round w3-margin-bottom" type="password" placeholder="sk-...">
+                    <button id="btnTestDeepSeekConnection" class="w3-button w3-blue w3-round w3-margin-top">Test connection</button>
+                    <div id="deepseekConnectionTestResult" class="w3-margin-top" style="min-height: 24px;"></div>
+                </div>
+                <div id="zhipuSettings" class="w3-card w3-padding w3-margin-top w3-round" style="display:none;">
+                    <p><b>智谱 Coding Plan Configuration</b></p>
+                    <p style="color:#999;">Endpoint: https://open.bigmodel.cn/api/coding/paas/v4</p>
+                    <p><b>API Key</b></p>
+                    <input id="zhipuApiKey" class="w3-input w3-border w3-round w3-margin-bottom" type="password" placeholder="Enter your Zhipu API key">
+                    <p><b>Model</b></p>
+                    <select id="zhipuModel" class="w3-select w3-border w3-round w3-margin-bottom">
+                        <option value="glm-4.7">GLM-4.7</option>
+                        <option value="glm-4.6">GLM-4.6</option>
+                    </select>
+                    <button id="btnTestZhipuConnection" class="w3-button w3-blue w3-round w3-margin-top">Test connection</button>
+                    <div id="zhipuConnectionTestResult" class="w3-margin-top" style="min-height: 24px;"></div>
                 </div>
                 <br>
                 <p><b data-i18n="lblTranslateDynamicallyCreatedContent">Translate dynamically created content</b></p>

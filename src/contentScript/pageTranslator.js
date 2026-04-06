@@ -203,8 +203,37 @@ function backgroundTranslateSingleText(translationService, targetLanguage, sourc
 
 var pageTranslator = {}
 
-const translatingStyle = document.createElement("style");
-translatingStyle.textContent = `
+var translatingStyle = null;
+
+const themeColors = {
+    purple: { main: "#ab47bc", border: "rgba(171, 71, 188, 0.3)" },
+    orange: { main: "#ff7043", border: "rgba(255, 112, 67, 0.3)" },
+    yellow: { main: "#f9a825", border: "rgba(249, 168, 37, 0.3)" },
+    pink: { main: "#f06292", border: "rgba(240, 98, 146, 0.3)" },
+    red: { main: "#ef5350", border: "rgba(239, 83, 80, 0.3)" },
+    blue: { main: "#42a5f5", border: "rgba(66, 165, 245, 0.3)" },
+    sky: { main: "#29b6f6", border: "rgba(41, 182, 246, 0.3)" },
+    earth: { main: "#8d6e63", border: "rgba(141, 110, 99, 0.3)" },
+    ocean: { main: "#26a69a", border: "rgba(38, 166, 154, 0.3)" },
+    forest: { main: "#66bb6a", border: "rgba(102, 187, 106, 0.3)" }
+};
+
+function getSpinnerColor() {
+    try {
+        const theme = twpConfig.get("uiTheme") || "blue";
+        return themeColors[theme] || themeColors.blue;
+    } catch (e) {
+        return themeColors.blue;
+    }
+}
+
+function updateSpinnerStyle() {
+    if (!translatingStyle) {
+        translatingStyle = document.createElement("style");
+        document.head.appendChild(translatingStyle);
+    }
+    const c = getSpinnerColor();
+    translatingStyle.textContent = `
 @keyframes twp-spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
@@ -215,14 +244,14 @@ translatingStyle.textContent = `
     height: 14px;
     margin-left: 8px;
     vertical-align: middle;
-    border: 2px solid rgba(72, 236, 233, 0.3);
-    border-top-color: #48ece9;
+    border: 2px solid ${c.border};
+    border-top-color: ${c.main};
     border-radius: 50%;
     animation: twp-spin 0.8s linear infinite;
     opacity: 0.8;
 }
 `;
-document.head.appendChild(translatingStyle);
+}
 
 function markNodesTranslating(nodes) {
     for (const node of nodes) {
@@ -241,8 +270,18 @@ function unmarkNodesTranslating(nodes) {
         if (node && node._twpSpinner) {
             node._twpSpinner.remove();
             delete node._twpSpinner;
+        } else if (node && node.parentNode) {
+            const next = node.nextSibling;
+            if (next && next.classList && next.classList.contains("twp-spinner")) {
+                next.remove();
+            }
+            const prev = node.previousSibling;
+            if (prev && prev.classList && prev.classList.contains("twp-spinner")) {
+                prev.remove();
+            }
         }
     }
+    document.querySelectorAll(".twp-spinner").forEach(s => s.remove());
 }
 
 function getTabHostName() {
@@ -264,6 +303,7 @@ Promise.all([twpConfig.onReady(), getTabUrl()])
       tabUrlWithoutSearch,
       twpConfig
     }
+    updateSpinnerStyle()
     const htmlTagsInlineText = ['#text', 'A', 'ABBR', 'ACRONYM', 'B', 'BDO', 'BIG', 'CITE', 'DFN', 'EM', 'I', 'LABEL', 'Q', 'S', 'SMALL', 'SPAN', 'STRONG', 'SUB', 'SUP', 'U', 'TT', 'VAR']
     const htmlTagsInlineIgnore = ['BR', 'CODE', 'KBD', 'WBR'] // and input if type is submit or button, and pre depending on settings
     const htmlTagsNoTranslate = ['TITLE', 'SCRIPT', 'STYLE', 'TEXTAREA', 'SVG', 'svg'] //TODO verificar porque 'svg' é com letras minúsculas
@@ -293,6 +333,9 @@ Promise.all([twpConfig.onReady(), getTabUrl()])
                 if (newvalue !== 'yes') {
                     htmlTagsInlineIgnore.push('PRE')
                 }
+                break
+            case "uiTheme":
+                updateSpinnerStyle()
                 break
         }
     })
@@ -765,7 +808,6 @@ Promise.all([twpConfig.onReady(), getTabUrl()])
                     const batchSize = 10
                     piecesToTranslate.forEach(ptt => {
                         if (!ptt.isTranslated) {
-                            ptt.isTranslated = true
                             piecesToTranslateNow.push(ptt)
                         }
                     })
@@ -773,14 +815,16 @@ Promise.all([twpConfig.onReady(), getTabUrl()])
                     const attributesToTranslateNow = []
                     attributesToTranslate.forEach(ati => {
                         if (!ati.isTranslated) {
-                            ati.isTranslated = true
                             attributesToTranslateNow.push(ati)
                         }
                     })
 
                     for (let batchStart = 0; batchStart < piecesToTranslateNow.length; batchStart += batchSize) {
                         const batch = piecesToTranslateNow.slice(batchStart, batchStart + batchSize)
-                        batch.forEach(ptt => markNodesTranslating(ptt.nodes));
+                        batch.forEach(ptt => {
+                            ptt.isTranslated = true
+                            markNodesTranslating(ptt.nodes)
+                        });
                         try {
                             const results = await backgroundTranslateHTML(
                                     currentPageTranslatorService,
@@ -795,13 +839,19 @@ Promise.all([twpConfig.onReady(), getTabUrl()])
                                      if(isShowDualLanguage){
                                         showCopyiedNodes()
                                      }
+                                } else {
+                                    batch.forEach(ptt => { ptt.isTranslated = false; })
                                 }
+                        } catch (e) {
+                            batch.forEach(ptt => { ptt.isTranslated = false; })
+                            console.error(e)
                         } finally {
                             batch.forEach(ptt => unmarkNodesTranslating(ptt.nodes));
                         }
                     }
 
                     if (attributesToTranslateNow.length > 0) {
+                        attributesToTranslateNow.forEach(ati => { ati.isTranslated = true; })
                         backgroundTranslateText(
                                 currentPageTranslatorService,
                                 currentTargetLanguage,
@@ -810,7 +860,12 @@ Promise.all([twpConfig.onReady(), getTabUrl()])
                             .then(results => {
                                 if (pageLanguageState === "translated" && currentFooCount === fooCount) {
                                     translateAttributes(attributesToTranslateNow, results)
+                                } else {
+                                    attributesToTranslateNow.forEach(ati => { ati.isTranslated = false; })
                                 }
+                            })
+                            .catch(() => {
+                                attributesToTranslateNow.forEach(ati => { ati.isTranslated = false; })
                             })
                     }
                 })()

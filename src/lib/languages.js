@@ -5144,6 +5144,8 @@ const twpLang = (function () {
   twpLang.UILanguages = Object.keys(allLanguagesNames);
   twpLang.TargetLanguages = Object.keys(allLanguagesNames["en"]);
   twpLang.SupportedLanguages.ai = [...twpLang.TargetLanguages];
+  twpLang.SupportedLanguages.deepseek = [...twpLang.TargetLanguages];
+  twpLang.SupportedLanguages.zhipu = [...twpLang.TargetLanguages];
 
   twpLang.getPageTranslationServices = function () {
     return [...pageTranslationServices];
@@ -5167,7 +5169,7 @@ const twpLang = (function () {
 
   /** @type {Map<string, string>} */
   const alternatives = new Map();
-  const pageTranslationServices = ["google", "yandex", "ai"];
+  const pageTranslationServices = ["google", "yandex", "ai", "deepseek", "zhipu"];
   /**
    * gets an alternate translation service if the selected translation service does not support the current target language.
    * @param {string} lang

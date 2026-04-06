@@ -1358,6 +1358,99 @@ const translationService = (function () {
   serviceList.set("yandex", yandexService);
   serviceList.set("bing", bingService);
   serviceList.set("ai", aiService);
+  serviceList.set("deepseek", new (class extends aiService.constructor {
+    constructor() { super(); this.serviceName = "deepseek"; }
+    async makeRequest(sourceLanguage, targetLanguage, requests) {
+      const apiKey = String(twpConfig.get("deepseekApiKey") || "").trim();
+      if (!apiKey) throw new Error("DeepSeek API key is not configured");
+      const overrides = {
+        endpoint: "https://api.deepseek.com/v1/chat/completions",
+        apiKey,
+        model: "deepseek-chat",
+        temperature: 0.3,
+      };
+      const settings = AIHelper.getSettings(overrides);
+      const requestPayload = requests.map(info => AIHelper.parseRequestText(info.originalText));
+      const data = await AIHelper.requestChatCompletion(settings, [
+        { role: "system", content: AIHelper.getPrompt(sourceLanguage, targetLanguage) },
+        { role: "user", content: JSON.stringify({
+          task: "Translate each string in every item to the target language.",
+          rules: [
+            "Return JSON only.",
+            "Return an object with a top-level key named results.",
+            "results must be an array with the same length and order as the input items.",
+            "Each results item must be an array of translated strings with the same length and order as its input item.",
+            "Do not explain anything.",
+            "Preserve placeholders, markup-like fragments, special tokens, and spacing as much as possible.",
+          ],
+          sourceLanguage, targetLanguage, items: requestPayload,
+        }) },
+      ]);
+      const content = AIHelper.extractMessageContent(data);
+      if (!content) throw new Error("DeepSeek response is empty");
+      let parsed;
+      try {
+        const trimmedContent = String(content).trim();
+        const maybeObject = JSON.parse(trimmedContent);
+        if (maybeObject && Array.isArray(maybeObject.results)) parsed = maybeObject.results;
+        else if (Array.isArray(maybeObject)) parsed = maybeObject;
+        else parsed = AIHelper.extractJSONArray(trimmedContent);
+      } catch (e) { parsed = AIHelper.extractJSONArray(content); }
+      if (parsed.length !== requestPayload.length) throw new Error("DeepSeek response length does not match request length");
+      return parsed.map((item, index) => {
+        const normalized = AIHelper.normalizeResultArray(item);
+        if (normalized.length !== requestPayload[index].length) throw new Error("DeepSeek response item length does not match");
+        return normalized;
+      });
+    }
+  })());
+  serviceList.set("zhipu", new (class extends aiService.constructor {
+    constructor() { super(); this.serviceName = "zhipu"; }
+    async makeRequest(sourceLanguage, targetLanguage, requests) {
+      const apiKey = String(twpConfig.get("zhipuApiKey") || "").trim();
+      const model = String(twpConfig.get("zhipuModel") || "glm-4.7").trim();
+      if (!apiKey) throw new Error("Zhipu API key is not configured");
+      const overrides = {
+        endpoint: "https://open.bigmodel.cn/api/coding/paas/v4/chat/completions",
+        apiKey,
+        model,
+        temperature: 0.3,
+      };
+      const settings = AIHelper.getSettings(overrides);
+      const requestPayload = requests.map(info => AIHelper.parseRequestText(info.originalText));
+      const data = await AIHelper.requestChatCompletion(settings, [
+        { role: "system", content: AIHelper.getPrompt(sourceLanguage, targetLanguage) },
+        { role: "user", content: JSON.stringify({
+          task: "Translate each string in every item to the target language.",
+          rules: [
+            "Return JSON only.",
+            "Return an object with a top-level key named results.",
+            "results must be an array with the same length and order as the input items.",
+            "Each results item must be an array of translated strings with the same length and order as its input item.",
+            "Do not explain anything.",
+            "Preserve placeholders, markup-like fragments, special tokens, and spacing as much as possible.",
+          ],
+          sourceLanguage, targetLanguage, items: requestPayload,
+        }) },
+      ]);
+      const content = AIHelper.extractMessageContent(data);
+      if (!content) throw new Error("Zhipu response is empty");
+      let parsed;
+      try {
+        const trimmedContent = String(content).trim();
+        const maybeObject = JSON.parse(trimmedContent);
+        if (maybeObject && Array.isArray(maybeObject.results)) parsed = maybeObject.results;
+        else if (Array.isArray(maybeObject)) parsed = maybeObject;
+        else parsed = AIHelper.extractJSONArray(trimmedContent);
+      } catch (e) { parsed = AIHelper.extractJSONArray(content); }
+      if (parsed.length !== requestPayload.length) throw new Error("Zhipu response length does not match request length");
+      return parsed.map((item, index) => {
+        const normalized = AIHelper.normalizeResultArray(item);
+        if (normalized.length !== requestPayload[index].length) throw new Error("Zhipu response item length does not match");
+        return normalized;
+      });
+    }
+  })());
   serviceList.set(
     "deepl",
     /** @type {Service} */ /** @type {?} */ (deeplService)

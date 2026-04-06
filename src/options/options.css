@@ -116,8 +116,11 @@
 }
 
 body {
-  font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+  font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
   background-color: var(--theme-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
 .w3-main > div > .w3-container,
@@ -155,6 +158,41 @@ select:focus, input[type="text"]:focus, input[type="password"]:focus, input[type
 #sideBar {
   background-color: var(--theme-sidebar-bg);
   box-shadow: 2px 0 15px var(--theme-sidebar-shadow);
+}
+.sidebar-header {
+  text-align: center;
+  padding: 28px 16px 20px !important;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+.brand-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--theme-primary), var(--theme-accent));
+  color: #fff;
+  font-family: "Inter", sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.brand-title {
+  font-family: "Inter", sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  color: var(--theme-primary);
+  margin: 0 0 4px;
+}
+.brand-version {
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: #999;
+  margin: 0;
 }
 #sideBar .w3-bar-item {
   margin: 4px 16px;

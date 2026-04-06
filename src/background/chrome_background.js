@@ -228,7 +228,7 @@ if (typeof chrome.contextMenus !== "undefined") {
             }else{
               chrome.tabs.sendMessage(tab.id, {
                   action: "toggle-translation"
-              }, checkedLastError)
+              }, {frameId: 0}, checkedLastError)
             }
         } else if (info.menuItemId == "browserAction-showPopup") {
             resetBrowserAction(true)
@@ -273,7 +273,7 @@ if (typeof chrome.contextMenus !== "undefined") {
                 chrome.tabs.sendMessage(tab.id, {
                     action: "translateSelectedText",
                     text: selectedText
-                }, checkedLastError)
+                }, {frameId: 0}, checkedLastError)
             }
         }
     })
