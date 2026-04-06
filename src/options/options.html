@@ -21,15 +21,6 @@
             <a href="#storage" class="w3-bar-item w3-button" data-i18n="msgStorage">Storage</a>
             <a href="#others" class="w3-bar-item w3-button" data-i18n="lblOthers">Others</a>
         </div>
-        <b><a href="#donation" class="w3-bar-item w3-button w3-padding"><span data-i18n="lblMakeDonation">Make a donation</span> &#10084;</a></b>
-        <a href="https://github.com/immersive-translate/immersive-translate/blob/main/CHANGELOG.md" class="w3-bar-item w3-button w3-padding" data-i18n="lblReleaseNotes">Release Notes</a>
-        <a href="https://github.com/immersive-translate/immersive-translate/issues" target="blank"
-            class="w3-bar-item w3-button w3-padding" data-i18n="lblReport">Report a problem</a>
-        <a href="https://t.me/+rq848Z09nehlOTgx" target="blank"
-            class="w3-bar-item w3-button w3-padding" data-i18n="lblTelegram">Telegram Group</a>
-        <a href="https://github.com/immersive-translate/immersive-translate" target="blank"
-            class="w3-bar-item w3-button w3-padding" >Github</a>
-        <!-- <a href="https://crowdin.com/project/translate-web-pages" target="blank" class="w3-bar-item w3-button w3-padding" data-i18n="lblTranslateInterface">Translate the interface</a> -->
     </nav>
 
     <header class="w3-bar w3-top w3-black w3-hide-large w3-xlarge" id="header">
@@ -50,7 +41,6 @@
 
         <header class="w3-container w3-xlarge">
             <p id="itemSelectedName" data-i18n="lblSettings" style="float: left;">Settings</p>
-            <p style="float: right; display: none;" id="btnPatreon"><a href="https://www.patreon.com/theowenyoung" target="blank"><img src="/icons/patreon.png" style="height: 40px;"></a></p>
         </header>
 
         <div>
@@ -187,7 +177,25 @@
                 <select id="pageTranslatorService" class="w3-select w3-margin">
                     <option value="google">Google</option>
                     <option value="yandex">Yandex</option>
+                    <option value="ai" data-i18n="lblAITranslationService">AI</option>
                 </select>
+                <div id="aiServiceSettings" class="w3-card w3-padding w3-margin-top w3-round">
+                    <p><b data-i18n="lblAIConfiguration">AI translation configuration</b></p>
+                    <p style="color:#999;" data-i18n="msgAIConfigurationHelp">Works with OpenAI-compatible APIs. Fill endpoint, API key and model.</p>
+                    <p><b data-i18n="lblAIEndpoint">API endpoint</b></p>
+                    <input id="aiModelEndpoint" class="w3-input w3-border w3-round w3-margin-bottom" type="text" placeholder="https://api.openai.com/v1/chat/completions">
+                    <p><b data-i18n="lblAIApiKey">API key</b></p>
+                    <input id="aiModelApiKey" class="w3-input w3-border w3-round w3-margin-bottom" type="password" placeholder="sk-...">
+                    <p><b data-i18n="lblAIModel">Model</b></p>
+                    <input id="aiModelName" class="w3-input w3-border w3-round w3-margin-bottom" type="text" placeholder="gpt-4o-mini">
+                    <p><b data-i18n="lblAITemperature">Temperature</b></p>
+                    <input id="aiModelTemperature" class="w3-input w3-border w3-round w3-margin-bottom" type="number" min="0" max="2" step="0.1">
+                    <p><b data-i18n="lblAISystemPrompt">System prompt</b></p>
+                    <textarea id="aiSystemPrompt" rows="4" class="w3-input w3-border w3-round"></textarea>
+                    <p style="color:#999;" class="w3-margin-top" data-i18n="msgAISystemPromptHelp">Supports placeholders: {targetLanguage}, {sourceLanguage}</p>
+                    <button id="btnTestAIConnection" class="w3-button w3-blue w3-round w3-margin-top" data-i18n="btnTestAIConnection">Test connection</button>
+                    <div id="aiConnectionTestResult" class="w3-margin-top" style="min-height: 24px;"></div>
+                </div>
                 <br>
                 <p><b data-i18n="lblTranslateDynamicallyCreatedContent">Translate dynamically created content</b></p>
                 <select id="translateDynamicallyCreatedContent" class="w3-select w3-margin">
@@ -291,21 +299,6 @@
             </div>
         </div>
 
-        <div>
-            <div id="donation" class="w3-container">
-                <div class="w3-light-blue w3-padding w3-round">
-                    <p data-i18n="msgThanksForUseExtension">Thank you for using this extension.</p>
-                    <p data-i18n="msgIWillBeGrateful">I will be grateful if you can make a donation.</p>
-                    <a href="https://www.patreon.com/theowenyoung" target="blank"><img src="/icons/patreon.png"
-                            alt="Become a patreon" width="200px"></a>
-                    <p>
-                     <span>ETH:</span> <code>0xe8Da964A97B609E691AAe4ec3e038d40959C3715</code>
-                    </p>
-                    <p>                      <img src="/icons/eth.png" alt="ETH" width="200px"></p>
-                </div>
-            </div>
-
-        </div>
     </div>
     <script src="/lib/languages.js"></script>
     <script src="/lib/config.js"></script>

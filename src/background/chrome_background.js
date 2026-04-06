@@ -52,10 +52,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         chrome.tabs.create({
             url: chrome.runtime.getURL("/options/options.html")
         })
-    } else if (request.action === "openDonationPage") {
-        chrome.tabs.create({
-            url: chrome.runtime.getURL("/options/options.html#donation")
-        })
     } else if (request.action === "detectTabLanguage") {
         if (!sender.tab) {
             // https://github.com/FilipePS/Traduzir-paginas-web/issues/478
@@ -212,6 +208,11 @@ if (typeof chrome.contextMenus !== "undefined") {
         title: chrome.i18n.getMessage("msgPDFtoHTML"),
         contexts: ["page_action"]
     })
+    chrome.contextMenus.create({
+        id: "translate-selected-text",
+        title: chrome.i18n.getMessage("msgTranslateSelectedText") || "Translate selected text",
+        contexts: ["selection"]
+    })
 
     const tabHasContentScript = {}
 
@@ -265,6 +266,14 @@ if (typeof chrome.contextMenus !== "undefined") {
                 chrome.tabs.create({
                     url: "https://translatewebpages.org/"
                 })
+            }
+        } else if (info.menuItemId == "translate-selected-text") {
+            const selectedText = info.selectionText
+            if (selectedText && tab) {
+                chrome.tabs.sendMessage(tab.id, {
+                    action: "translateSelectedText",
+                    text: selectedText
+                }, checkedLastError)
             }
         }
     })
@@ -368,7 +377,15 @@ twpConfig.onReady(() => {
             }
         })
 
-        if (chrome.action && typeof browser !== "undefined") {
+        if (
+            chrome.action &&
+            typeof browser !== "undefined" &&
+            browser.theme &&
+            typeof browser.theme.getCurrent === "function" &&
+            chrome.theme &&
+            chrome.theme.onUpdated &&
+            typeof matchMedia === "function"
+        ) {
             let pageLanguageState = "original"
 
             let themeColorPopupText = null
@@ -530,12 +547,9 @@ if (typeof chrome.commands !== "undefined") {
                     action: "swapTranslationService"
                 }, checkedLastError))
 
-            let currentPageTranslatorService = twpConfig.get("pageTranslatorService")
-            if (currentPageTranslatorService === "google") {
-                currentPageTranslatorService = "yandex"
-            } else {
-                currentPageTranslatorService = "google"
-            }
+            const currentPageTranslatorService = twpLang.getNextPageTranslationService(
+                twpConfig.get("pageTranslatorService")
+            )
 
             twpConfig.set("pageTranslatorService", currentPageTranslatorService)
         } 

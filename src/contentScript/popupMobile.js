@@ -30,7 +30,6 @@ Promise.all([twpConfig.onReady(), getTabHostName()])
                     <a id="btnNeverTranslate" data-i18n="btnNeverTranslate">Never translate this site</a>
                     <a id="neverTranslateThisLanguage" data-i18n="btnNeverTranslateThisLanguage" display="none">Never translate this language</a>
                     <a id="btnMoreOptions" data-i18n="btnMoreOptions">More options</a>
-                    <a id="btnDonate" data-i18n="btnDonate" href="https://www.patreon.com/theowenyoung" target="_blank" rel="noopener noreferrer">Donate</a>
                 </div>
             </div>
             <div class="dropup">
@@ -76,6 +75,17 @@ Promise.all([twpConfig.onReady(), getTabHostName()])
 
     let divElement
     let getElemById
+
+    function getServiceIconPath(serviceName) {
+        switch (serviceName) {
+            case "yandex":
+                return chrome.runtime.getURL("/icons/yandex-translate-32.png")
+            case "ai":
+                return chrome.runtime.getURL("/icons/icon-32.png")
+            default:
+                return chrome.runtime.getURL("/icons/google-translate-32.png")
+        }
+    }
 
     function hideMenu(e) {
         if (!divElement) return;
@@ -232,19 +242,14 @@ Promise.all([twpConfig.onReady(), getTabHostName()])
 
         function updateIcon() {
             if (!getElemById) return;
-
-            if (currentPageTranslatorService === "yandex") {
-                getElemById("iconTranslate").src = chrome.runtime.getURL("/icons/yandex-translate-32.png")
-            } else {
-                getElemById("iconTranslate").src = chrome.runtime.getURL("/icons/google-translate-32.png")
-            }
+            getElemById("iconTranslate").src = getServiceIconPath(currentPageTranslatorService)
         }
         updateIcon()
 
         getElemById("iconTranslate").onclick = e => {
             pageTranslator.swapTranslationService()
 
-            currentPageTranslatorService = currentPageTranslatorService === "google" ? "yandex" : "google"
+            currentPageTranslatorService = twpLang.getNextPageTranslationService(currentPageTranslatorService)
             updateIcon()
 
             twpConfig.set("pageTranslatorService", currentPageTranslatorService)
@@ -301,18 +306,8 @@ Promise.all([twpConfig.onReady(), getTabHostName()])
             })
         }
 
-        getElemById("btnDonate").onclick = e => {
-            e.preventDefault()
-            chrome.runtime.sendMessage({
-                action: "openDonationPage"
-            })
-        }
-
         document.addEventListener("blur", hideMenu)
         document.addEventListener("click", hideMenu)
-
-
-        getElemById("btnDonate").innerHTML += " &#10084;"
     }
 
     popupMobile.hide = function () {

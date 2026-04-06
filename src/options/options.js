@@ -24,7 +24,7 @@ twpConfig.onReady(function () {
 
     function hashchange() {
         const hash = location.hash || "#main"
-        const divs = [$("#main"),  $("#translations"),  $("#hotkeys"), $("#storage"), $("#others"), $("#donation"), ]
+        const divs = [$("#main"),  $("#translations"),  $("#hotkeys"), $("#storage"), $("#others"), ]
         divs.forEach(element => {
             element.style.display = "none"
         })
@@ -37,9 +37,9 @@ twpConfig.onReady(function () {
         $('a[href="' + hash + '"]').classList.add("w3-light-grey")
 
         let text
-        if (hash === "#donation") {
-            text = chrome.i18n.getMessage("lblMakeDonation")
-        }else {
+        if (hash === "#main") {
+            text = chrome.i18n.getMessage("lblSettings")
+        } else {
             text = chrome.i18n.getMessage("lblSettings")
         }
         $("#itemSelectedName").textContent = text
@@ -49,8 +49,6 @@ twpConfig.onReady(function () {
             $("#sideBar").style.display = "none"
             sideBarIsVisible = false
         }
-
-        $("#btnPatreon").style.display = "block"
     }
     hashchange()
     window.addEventListener("hashchange", hashchange)
@@ -102,15 +100,6 @@ twpConfig.onReady(function () {
             el.textContent = `
             * {
                 scrollbar-color: #202324 #454a4d;
-            }
-
-            #donation * {
-                background-color: #87CEEB !important;
-            }
-
-            #donation select {
-                color: black !important;
-                background-color: rgb(231, 230, 228) !important;
             }
 
             html *, nav, #header {
@@ -420,10 +409,98 @@ twpConfig.onReady(function () {
     }
 
     // translations options
+    function updateAISettingsVisibility() {
+        $("#aiServiceSettings").style.display = $("#pageTranslatorService").value === "ai" ? "block" : "none"
+    }
+
     $("#pageTranslatorService").onchange = e => {
         twpConfig.set("pageTranslatorService", e.target.value)
+        updateAISettingsVisibility()
     }
     $("#pageTranslatorService").value = twpConfig.get("pageTranslatorService")
+    updateAISettingsVisibility()
+
+    $("#aiModelEndpoint").onchange = e => {
+        twpConfig.set("aiModelEndpoint", e.target.value.trim())
+    }
+    $("#aiModelEndpoint").value = twpConfig.get("aiModelEndpoint")
+
+    $("#aiModelApiKey").onchange = e => {
+        twpConfig.set("aiModelApiKey", e.target.value.trim())
+    }
+    $("#aiModelApiKey").value = twpConfig.get("aiModelApiKey")
+
+    $("#aiModelName").onchange = e => {
+        twpConfig.set("aiModelName", e.target.value.trim())
+    }
+    $("#aiModelName").value = twpConfig.get("aiModelName")
+
+    $("#aiModelTemperature").onchange = e => {
+        let temperature = Number(e.target.value)
+        if (Number.isNaN(temperature)) {
+            temperature = 0.3
+        }
+        temperature = Math.max(0, Math.min(2, temperature))
+        e.target.value = temperature
+        twpConfig.set("aiModelTemperature", temperature)
+    }
+    $("#aiModelTemperature").value = twpConfig.get("aiModelTemperature")
+
+    $("#aiSystemPrompt").onchange = e => {
+        twpConfig.set("aiSystemPrompt", e.target.value.trim())
+    }
+    $("#aiSystemPrompt").value = twpConfig.get("aiSystemPrompt")
+
+    function setAIConnectionTestResult(message, isSuccess = false) {
+        const resultNode = $("#aiConnectionTestResult")
+        resultNode.textContent = message || ""
+        resultNode.style.color = isSuccess ? "#2e7d32" : "#c62828"
+    }
+
+    $("#btnTestAIConnection").onclick = () => {
+        const aiConfig = {
+            endpoint: $("#aiModelEndpoint").value.trim(),
+            apiKey: $("#aiModelApiKey").value.trim(),
+            model: $("#aiModelName").value.trim(),
+            temperature: Number($("#aiModelTemperature").value),
+        }
+
+        twpConfig.set("aiModelEndpoint", aiConfig.endpoint)
+        twpConfig.set("aiModelApiKey", aiConfig.apiKey)
+        twpConfig.set("aiModelName", aiConfig.model)
+        twpConfig.set("aiModelTemperature", Number.isNaN(aiConfig.temperature) ? 0.3 : aiConfig.temperature)
+        twpConfig.set("aiSystemPrompt", $("#aiSystemPrompt").value.trim())
+
+        $("#btnTestAIConnection").setAttribute("disabled", "")
+        setAIConnectionTestResult(chrome.i18n.getMessage("msgTestingAIConnection") || "Testing...")
+
+        chrome.runtime.sendMessage({
+            action: "testAIConnection",
+            aiConfig
+        }, response => {
+            $("#btnTestAIConnection").removeAttribute("disabled")
+
+            if (chrome.runtime.lastError) {
+                setAIConnectionTestResult((chrome.i18n.getMessage("msgAIConnectionTestFailed") || "Connection test failed") + ": " + chrome.runtime.lastError.message)
+                return
+            }
+
+            if (!response) {
+                setAIConnectionTestResult(chrome.i18n.getMessage("msgAIConnectionTestFailed") || "Connection test failed")
+                return
+            }
+
+            if (response.ok) {
+                const prefix = chrome.i18n.getMessage("msgAIConnectionTestSucceeded") || "Connection succeeded"
+                const suffix = response.message ? `: ${response.message}` : ""
+                setAIConnectionTestResult(prefix + suffix, true)
+            } else {
+                const prefix = chrome.i18n.getMessage("msgAIConnectionTestFailed") || "Connection test failed"
+                const suffix = response.message ? `: ${response.message}` : ""
+                setAIConnectionTestResult(prefix + suffix)
+            }
+        })
+    }
 
 
     $("#translateTag_pre").onchange = e => {

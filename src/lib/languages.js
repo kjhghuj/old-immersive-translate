@@ -5143,6 +5143,17 @@ const twpLang = (function () {
 
   twpLang.UILanguages = Object.keys(allLanguagesNames);
   twpLang.TargetLanguages = Object.keys(allLanguagesNames["en"]);
+  twpLang.SupportedLanguages.ai = [...twpLang.TargetLanguages];
+
+  twpLang.getPageTranslationServices = function () {
+    return [...pageTranslationServices];
+  };
+
+  twpLang.getNextPageTranslationService = function (serviceName) {
+    const index = pageTranslationServices.indexOf(serviceName);
+    if (index === -1) return pageTranslationServices[0];
+    return pageTranslationServices[(index + 1) % pageTranslationServices.length];
+  };
 
   /**
    * get the list of localized languages for the current browser language
@@ -5156,7 +5167,7 @@ const twpLang = (function () {
 
   /** @type {Map<string, string>} */
   const alternatives = new Map();
-  const pageTranslationServices = ["google", "yandex"];
+  const pageTranslationServices = ["google", "yandex", "ai"];
   /**
    * gets an alternate translation service if the selected translation service does not support the current target language.
    * @param {string} lang

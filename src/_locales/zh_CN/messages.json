@@ -311,8 +311,50 @@
   "lblPageTranslationService": {
     "message": "页面翻译服务"
   },
+  "lblAITranslationService": {
+    "message": "AI"
+  },
+  "lblAIConfiguration": {
+    "message": "AI 翻译配置"
+  },
+  "lblAIEndpoint": {
+    "message": "API 接口地址"
+  },
+  "lblAIApiKey": {
+    "message": "API Key"
+  },
+  "lblAIModel": {
+    "message": "模型名称"
+  },
+  "lblAITemperature": {
+    "message": "Temperature"
+  },
+  "lblAISystemPrompt": {
+    "message": "系统提示词"
+  },
+  "msgAIConfigurationHelp": {
+    "message": "当前按 OpenAI 兼容接口接入，请填写接口地址、API Key 和模型名。"
+  },
+  "msgAISystemPromptHelp": {
+    "message": "支持占位符：{targetLanguage}、{sourceLanguage}"
+  },
+  "btnTestAIConnection": {
+    "message": "测试连接"
+  },
+  "msgTestingAIConnection": {
+    "message": "正在测试连接..."
+  },
+  "msgAIConnectionTestSucceeded": {
+    "message": "连接成功"
+  },
+  "msgAIConnectionTestFailed": {
+    "message": "连接测试失败"
+  },
   "lblTextTranslationService": {
     "message": "文本翻译服务"
+  },
+  "msgTranslateSelectedText": {
+    "message": "翻译选中的文本"
   },
   "msgStorage": {
     "message": "存储"

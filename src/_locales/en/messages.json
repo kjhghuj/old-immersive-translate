@@ -302,8 +302,50 @@
   "lblPageTranslationService": {
     "message": "Page translation service"
   },
+  "lblAITranslationService": {
+    "message": "AI"
+  },
+  "lblAIConfiguration": {
+    "message": "AI translation configuration"
+  },
+  "lblAIEndpoint": {
+    "message": "API endpoint"
+  },
+  "lblAIApiKey": {
+    "message": "API key"
+  },
+  "lblAIModel": {
+    "message": "Model"
+  },
+  "lblAITemperature": {
+    "message": "Temperature"
+  },
+  "lblAISystemPrompt": {
+    "message": "System prompt"
+  },
+  "msgAIConfigurationHelp": {
+    "message": "Works with OpenAI-compatible APIs. Fill endpoint, API key and model."
+  },
+  "msgAISystemPromptHelp": {
+    "message": "Supports placeholders: {targetLanguage}, {sourceLanguage}"
+  },
+  "btnTestAIConnection": {
+    "message": "Test connection"
+  },
+  "msgTestingAIConnection": {
+    "message": "Testing connection..."
+  },
+  "msgAIConnectionTestSucceeded": {
+    "message": "Connection succeeded"
+  },
+  "msgAIConnectionTestFailed": {
+    "message": "Connection test failed"
+  },
   "lblTextTranslationService": {
     "message": "Text Translation Service"
+  },
+  "msgTranslateSelectedText": {
+    "message": "Translate selected text"
   },
   "msgStorage": {
     "message": "Storage"

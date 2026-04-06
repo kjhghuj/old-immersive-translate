@@ -1076,12 +1076,288 @@ const translationService = (function () {
     }
   })();
 
+  class AIHelper {
+    static normalizeEndpoint(raw) {
+      let url = String(raw || "").trim();
+      if (!url) return url;
+      url = url.replace(/\/+$/, "");
+      if (/\/chat\/completions\/?$/i.test(url)) return url;
+      if (/\/v\d+\/?$/.test(url)) return url + "/chat/completions";
+      if (!/\/v\d+/.test(url)) return url + "/v1/chat/completions";
+      return url + "/chat/completions";
+    }
+
+    static getSettings(overrides = {}) {
+      const endpoint = AIHelper.normalizeEndpoint(
+        overrides.endpoint ?? twpConfig.get("aiModelEndpoint") ?? ""
+      );
+      const apiKey = String(
+        overrides.apiKey ?? twpConfig.get("aiModelApiKey") ?? ""
+      ).trim();
+      const model = String(
+        overrides.model ?? twpConfig.get("aiModelName") ?? ""
+      ).trim();
+      let temperature = Number(
+        overrides.temperature ?? twpConfig.get("aiModelTemperature")
+      );
+      if (Number.isNaN(temperature)) {
+        temperature = 0.3;
+      }
+      temperature = Math.max(0, Math.min(2, temperature));
+      const systemPrompt =
+        String(twpConfig.get("aiSystemPrompt") || "").trim() ||
+        "You are a translation engine. Translate every string to {targetLanguage}. Preserve meaning, placeholders, whitespace, punctuation, and special markers exactly. Return valid JSON only.";
+
+      if (!endpoint) {
+        throw new Error("AI endpoint is not configured");
+      }
+      if (!apiKey) {
+        throw new Error("AI API key is not configured");
+      }
+      if (!model) {
+        throw new Error("AI model is not configured");
+      }
+
+      return {
+        endpoint,
+        apiKey,
+        model,
+        temperature,
+        systemPrompt,
+      };
+    }
+
+    static async requestChatCompletion(settings, messages, extraBody = {}) {
+      const response = await fetch(settings.endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${settings.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: settings.model,
+          temperature: settings.temperature,
+          stream: false,
+          messages,
+          ...extraBody,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || response.statusText);
+      }
+
+      return await response.json();
+    }
+
+    static extractMessageContent(data) {
+      const content =
+        data &&
+        data.choices &&
+        data.choices[0] &&
+        data.choices[0].message &&
+        data.choices[0].message.content;
+
+      if (typeof content === "string") {
+        return content;
+      }
+      if (Array.isArray(content)) {
+        return content
+          .map((item) => {
+            if (typeof item === "string") return item;
+            if (item && typeof item.text === "string") return item.text;
+            return "";
+          })
+          .join("");
+      }
+      return "";
+    }
+
+    static getPrompt(sourceLanguage, targetLanguage) {
+      const settings = AIHelper.getSettings();
+      return settings.systemPrompt
+        .replace(/\{sourceLanguage\}/g, sourceLanguage || "auto")
+        .replace(/\{targetLanguage\}/g, targetLanguage);
+    }
+
+    static parseRequestText(originalText) {
+      try {
+        const value = JSON.parse(originalText);
+        if (Array.isArray(value)) {
+          return value.map((item) =>
+            typeof item === "string" ? item : String(item ?? "")
+          );
+        }
+      } catch (e) {
+        console.warn("Failed to parse AI request text", e);
+      }
+      return [String(originalText ?? "")];
+    }
+
+    static normalizeResultArray(value) {
+      if (!Array.isArray(value)) {
+        throw new Error("AI response item must be an array");
+      }
+      return value.map((item) =>
+        typeof item === "string" ? item : String(item ?? "")
+      );
+    }
+
+    static extractJSONArray(text) {
+      const trimmed = String(text || "").trim();
+      console.log("[AI] Raw response content:", trimmed.slice(0, 500));
+
+      const candidates = [trimmed];
+
+      if (trimmed.startsWith("```")) {
+        candidates.push(
+          trimmed.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim()
+        );
+      }
+
+      const firstBrace = trimmed.indexOf("{");
+      if (firstBrace !== -1) {
+        const lastBrace = trimmed.lastIndexOf("}");
+        if (lastBrace !== -1 && lastBrace > firstBrace) {
+          candidates.push(trimmed.slice(firstBrace, lastBrace + 1));
+        }
+      }
+
+      const firstBracket = trimmed.indexOf("[");
+      const lastBracket = trimmed.lastIndexOf("]");
+      if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
+        candidates.push(trimmed.slice(firstBracket, lastBracket + 1));
+      }
+
+      for (const candidate of candidates) {
+        try {
+          const parsed = JSON.parse(candidate);
+          if (Array.isArray(parsed)) {
+            return parsed;
+          }
+          if (parsed && Array.isArray(parsed.results)) {
+            return parsed.results;
+          }
+          if (parsed && parsed.data && Array.isArray(parsed.data)) {
+            return parsed.data;
+          }
+        } catch (e) {
+          // ignore and try the next strategy
+        }
+      }
+
+      console.error("[AI] Failed to extract JSON array from response:", trimmed.slice(0, 1000));
+      throw new Error("AI response is not valid JSON");
+    }
+  }
+
+  const aiService = new (class extends Service {
+    constructor() {
+      super(
+        "ai",
+        "",
+        "POST",
+        function cbTransformRequest(sourceArray) {
+          return JSON.stringify(sourceArray);
+        },
+        function cbParseResponse(response) {
+          return response.map((item) => ({
+            text: JSON.stringify(AIHelper.normalizeResultArray(item)),
+            detectedLanguage: null,
+          }));
+        },
+        function cbTransformResponse(result, dontSortResults) {
+          try {
+            return AIHelper.normalizeResultArray(JSON.parse(result));
+          } catch (e) {
+            console.error("Failed to parse AI translation response", e);
+            return [String(result ?? "")];
+          }
+        }
+      );
+    }
+
+    async makeRequest(sourceLanguage, targetLanguage, requests) {
+      console.log("[AI] makeRequest called, requestCount:", requests.length);
+      const settings = AIHelper.getSettings();
+      const requestPayload = requests.map((info) =>
+        AIHelper.parseRequestText(info.originalText)
+      );
+      const data = await AIHelper.requestChatCompletion(
+        settings,
+        [
+          {
+            role: "system",
+            content: AIHelper.getPrompt(sourceLanguage, targetLanguage),
+          },
+          {
+            role: "user",
+            content: JSON.stringify({
+              task: "Translate each string in every item to the target language.",
+              rules: [
+                "Return JSON only.",
+                "Return an object with a top-level key named results.",
+                "results must be an array with the same length and order as the input items.",
+                "Each results item must be an array of translated strings with the same length and order as its input item.",
+                "Do not explain anything.",
+                "Preserve placeholders, markup-like fragments, special tokens, and spacing as much as possible.",
+              ],
+              sourceLanguage,
+              targetLanguage,
+              items: requestPayload,
+            }),
+          },
+        ]
+      );
+      const content = AIHelper.extractMessageContent(data);
+      console.log("[AI] Model response content:", String(content || "").slice(0, 500));
+
+      if (!content) {
+        throw new Error("AI response is empty");
+      }
+
+      let parsed;
+      try {
+        const trimmedContent = String(content).trim();
+        const maybeObject = JSON.parse(trimmedContent);
+        if (maybeObject && Array.isArray(maybeObject.results)) {
+          parsed = maybeObject.results;
+          console.log("[AI] Parsed from results key, length:", parsed.length);
+        } else if (Array.isArray(maybeObject)) {
+          parsed = maybeObject;
+          console.log("[AI] Parsed as array, length:", parsed.length);
+        } else {
+          parsed = AIHelper.extractJSONArray(trimmedContent);
+        }
+      } catch (e) {
+        console.warn("[AI] Direct parse failed, trying extractJSONArray:", e.message);
+        parsed = AIHelper.extractJSONArray(content);
+      }
+
+      if (parsed.length !== requestPayload.length) {
+        console.error("[AI] Length mismatch. Expected:", requestPayload.length, "Got:", parsed.length, "Payload:", JSON.stringify(requestPayload).slice(0, 200), "Parsed:", JSON.stringify(parsed).slice(0, 200));
+        throw new Error("AI response length does not match request length");
+      }
+
+      return parsed.map((item, index) => {
+        const normalized = AIHelper.normalizeResultArray(item);
+        if (normalized.length !== requestPayload[index].length) {
+          console.error("[AI] Item length mismatch at index", index, ". Expected:", requestPayload[index].length, "Got:", normalized.length);
+          throw new Error("AI response item length does not match request item length");
+        }
+        return normalized;
+      });
+    }
+  })();
+
   /** @type {Map<string, Service>} */
   const serviceList = new Map();
 
   serviceList.set("google", googleService);
   serviceList.set("yandex", yandexService);
   serviceList.set("bing", bingService);
+  serviceList.set("ai", aiService);
   serviceList.set(
     "deepl",
     /** @type {Service} */ /** @type {?} */ (deeplService)
@@ -1100,14 +1376,17 @@ const translationService = (function () {
       serviceName,
       true
     );
+    console.log("[AI] translateHTML called, serviceName:", serviceName, "targetLang:", targetLanguage, "batchCount:", sourceArray2d.length);
     const service = serviceList.get(serviceName) || serviceList.get("google");
-    return await service.translate(
+    const result = await service.translate(
       sourceLanguage,
       targetLanguage,
       sourceArray2d,
       dontSaveInPersistentCache,
       dontSortResults
     );
+    console.log("[AI] translateHTML result:", JSON.stringify(result).slice(0, 500));
+    return result;
   };
 
   translationService.translateText = async (
@@ -1154,6 +1433,35 @@ const translationService = (function () {
         dontSaveInPersistentCache
       )
     )[0][0];
+  };
+
+  translationService.testAIConnection = async (aiConfig = {}) => {
+    const settings = AIHelper.getSettings(aiConfig);
+    const data = await AIHelper.requestChatCompletion(
+      settings,
+      [
+        {
+          role: "system",
+          content:
+            "You are a connection test endpoint for a browser extension. Reply briefly.",
+        },
+        {
+          role: "user",
+          content:
+            "Reply with exactly: OK",
+        },
+      ],
+      {
+        temperature: 0,
+        max_tokens: 10,
+      }
+    );
+    const content = AIHelper.extractMessageContent(data).trim();
+    return {
+      ok: true,
+      model: settings.model,
+      message: content || "OK",
+    };
   };
 
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -1204,6 +1512,19 @@ const translationService = (function () {
         .then((results) => sendResponse(results))
         .catch((e) => {
           sendResponse();
+          console.error(e);
+        });
+
+      return true;
+    } else if (request.action === "testAIConnection") {
+      translationService
+        .testAIConnection(request.aiConfig || {})
+        .then((result) => sendResponse(result))
+        .catch((e) => {
+          sendResponse({
+            ok: false,
+            message: e && e.message ? e.message : String(e),
+          });
           console.error(e);
         });
 

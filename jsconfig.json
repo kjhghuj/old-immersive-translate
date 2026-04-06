@@ -2,8 +2,9 @@
   "compilerOptions": {
     "rootDir": "./src",
     "target": "ES2022",
-    "checkJs": true,
-    "alwaysStrict": true
+    "checkJs": false,
+    "alwaysStrict": true,
+    "types": ["chrome", "firefox-webext-browser"]
   },
   "include": ["./src"]
 }

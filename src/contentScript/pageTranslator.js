@@ -203,6 +203,37 @@ function backgroundTranslateSingleText(translationService, targetLanguage, sourc
 
 var pageTranslator = {}
 
+const translatingStyle = document.createElement("style");
+translatingStyle.textContent = `
+@keyframes twp-translating-pulse {
+    0% { background-color: rgba(72, 236, 233, 0.15); }
+    50% { background-color: rgba(72, 236, 233, 0.35); }
+    100% { background-color: rgba(72, 236, 233, 0.15); }
+}
+.twp-translating {
+    animation: twp-translating-pulse 1.2s ease-in-out infinite !important;
+    border-radius: 2px;
+    transition: background-color 0.3s ease;
+}
+`;
+document.head.appendChild(translatingStyle);
+
+function markNodesTranslating(nodes) {
+    for (const node of nodes) {
+        if (node && node.parentElement) {
+            node.parentElement.classList.add("twp-translating");
+        }
+    }
+}
+
+function unmarkNodesTranslating(nodes) {
+    for (const node of nodes) {
+        if (node && node.parentElement) {
+            node.parentElement.classList.remove("twp-translating");
+        }
+    }
+}
+
 function getTabHostName() {
     return new Promise(resolve => chrome.runtime.sendMessage({action: "getTabHostName"}, result => resolve(result)))
 }
@@ -776,6 +807,7 @@ Promise.all([twpConfig.onReady(), getTabUrl()])
                     })
 
                     if (piecesToTranslateNow.length > 0) {
+                        piecesToTranslateNow.forEach(ptt => markNodesTranslating(ptt.nodes));
                         const results = await backgroundTranslateHTML(
                                 currentPageTranslatorService,
                                 currentTargetLanguage,
@@ -784,6 +816,7 @@ Promise.all([twpConfig.onReady(), getTabUrl()])
                             )
                             if (pageLanguageState === "translated" && currentFooCount === fooCount) {
                                  await translateResults(piecesToTranslateNow, results,ctx)
+                                 piecesToTranslateNow.forEach(ptt => unmarkNodesTranslating(ptt.nodes));
                                  // changed here
                                  const isShowDualLanguage = twpConfig.get("isShowDualLanguage")==='no'?false:true;
 
@@ -920,11 +953,7 @@ Promise.all([twpConfig.onReady(), getTabUrl()])
     }
 
     pageTranslator.swapTranslationService = function () {
-        if (currentPageTranslatorService === "google") {
-            currentPageTranslatorService = "yandex"
-        } else {
-            currentPageTranslatorService = "google"
-        }
+        currentPageTranslatorService = twpLang.getNextPageTranslationService(currentPageTranslatorService)
         if (pageLanguageState === "translated") {
             pageTranslator.translatePage()
         }
@@ -933,7 +962,79 @@ Promise.all([twpConfig.onReady(), getTabUrl()])
     let alreadyGotTheLanguage = false
     const observers = []
 
-    pageTranslator.onGetOriginalTabLanguage = function (callback) {
+    let selectionPopup = null
+    function removeSelectionPopup() {
+        if (selectionPopup) {
+            selectionPopup.remove()
+            selectionPopup = null
+        }
+    }
+
+    async function handleTranslateSelectedText(text) {
+        removeSelectionPopup()
+        const selection = window.getSelection()
+        if (!selection || selection.rangeCount === 0) return
+
+        const range = selection.getRangeAt(0)
+        const rect = range.getBoundingClientRect()
+
+        selectionPopup = document.createElement("div")
+        selectionPopup.className = "notranslate"
+        selectionPopup.setAttribute("style", [
+            "all: initial",
+            "position: fixed",
+            "z-index: 2147483647",
+            "max-width: 420px",
+            "min-width: 180px",
+            "padding: 12px 16px",
+            "border-radius: 8px",
+            "background: #fff",
+            "color: #333",
+            "font-size: 14px",
+            "line-height: 1.6",
+            "box-shadow: 0 4px 24px rgba(0,0,0,0.18)",
+            "border: 1px solid #e0e0e0",
+            "word-break: break-word",
+            "white-space: pre-wrap",
+            "font-family: system-ui, -apple-system, sans-serif",
+        ].join(";"))
+        selectionPopup.textContent = "..."
+
+        let top = rect.bottom + 8
+        let left = rect.left
+        if (top + 200 > window.innerHeight) {
+            top = Math.max(0, rect.top - 200)
+        }
+        if (left + 420 > window.innerWidth) {
+            left = Math.max(0, window.innerWidth - 440)
+        }
+        selectionPopup.style.top = top + "px"
+        selectionPopup.style.left = left + "px"
+        document.body.appendChild(selectionPopup)
+
+        const service = currentPageTranslatorService || "google"
+        const targetLang = currentTargetLanguage || twpConfig.get("targetLanguage") || "zh-CN"
+
+        try {
+            const result = await backgroundTranslateSingleText(service, targetLang, text)
+            if (selectionPopup) {
+                selectionPopup.textContent = result || text
+            }
+        } catch (e) {
+            if (selectionPopup) {
+                selectionPopup.textContent = "Translation failed: " + (e.message || e)
+                selectionPopup.style.color = "#e53935"
+            }
+        }
+    }
+
+    document.addEventListener("mousedown", function(e) {
+        if (selectionPopup && !selectionPopup.contains(e.target)) {
+            removeSelectionPopup()
+        }
+    })
+
+    pageTranslator.onPageLanguageStateChange = function (callback) {
         if (alreadyGotTheLanguage) {
             callback(originalTabLanguage)
         } else {
@@ -978,6 +1079,8 @@ Promise.all([twpConfig.onReady(), getTabUrl()])
                     }
                 })
             }
+        } else if (request.action === "translateSelectedText") {
+            handleTranslateSelectedText(request.text)
         }
     })
 

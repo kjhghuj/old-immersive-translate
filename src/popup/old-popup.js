@@ -33,13 +33,7 @@ twpConfig.onReady(function () {
     const btnOptionsDiv = document.getElementById("btnOptionsDiv")
     const btnOptions = document.getElementById("btnOptions")
 
-    $("#btnPatreon").onclick = e => {
-        window.open("https://www.patreon.com/theowenyoung", "_blank")
-    }
-
-
     $("#btnOptionB").innerHTML += ' <i class="arrow down"></i>'
-    $("#btnOptions option[value='donate']").innerHTML += " &#10084;";
 
     var cStyle = getComputedStyle(document.querySelector("#btnOptionB"))
     btnOptions.style.width = (parseInt(cStyle.width) + 0) + "px"
@@ -194,14 +188,30 @@ twpConfig.onReady(function () {
 
     let showSelectTargetLanguage = false
 
+    function getServiceIconPath(serviceName) {
+        switch (serviceName) {
+            case "yandex":
+                return "/icons/yandex-translate-32.png"
+            case "ai":
+                return "/icons/icon-32.png"
+            default:
+                return "/icons/google-translate-32.png"
+        }
+    }
+
     function updateInterface() {
+        const externalSiteOption = $("#btnOptions option[value='translateInExternalSite']")
         if (currentPageTranslatorService == "yandex") {
             $("#btnOptions option[value='translateInExternalSite']").textContent = chrome.i18n.getMessage("msgOpenOnYandexTranslator")
-            $("#iconTranslate").setAttribute("src", "/icons/yandex-translate-32.png")
+            externalSiteOption.hidden = false
+        } else if (currentPageTranslatorService === "ai") {
+            externalSiteOption.textContent = chrome.i18n.getMessage("btnMoreOptions")
+            externalSiteOption.hidden = true
         } else { // google
             $("#btnOptions option[value='translateInExternalSite']").textContent = chrome.i18n.getMessage("btnOpenOnGoogleTranslate")
-            $("#iconTranslate").setAttribute("src", "/icons/google-translate-32.png")
+            externalSiteOption.hidden = false
         }
+        $("#iconTranslate").setAttribute("src", getServiceIconPath(currentPageTranslatorService))
 
         let showAlwaysTranslateCheckbox = false
 
@@ -361,11 +371,7 @@ twpConfig.onReady(function () {
             }, checkedLastError)
         })
 
-        if (currentPageTranslatorService === "google") {
-            currentPageTranslatorService = "yandex"
-        } else {
-            currentPageTranslatorService = "google"
-        }
+        currentPageTranslatorService = twpLang.getNextPageTranslationService(currentPageTranslatorService)
 
         twpConfig.set("pageTranslatorService", currentPageTranslatorService)
 
@@ -444,6 +450,10 @@ twpConfig.onReady(function () {
                             chrome.tabs.create({
                                 url: `https://translate.yandex.com/translate?view=compact&url=${encodeURIComponent(tabs[0].url)}&lang=${twpConfig.get("targetLanguage").split("-")[0]}`
                             })
+                        } else if (currentPageTranslatorService === "ai") {
+                            chrome.tabs.create({
+                                url: chrome.runtime.getURL("/options/options.html#translations")
+                            })
                         } else { // google
                             chrome.tabs.create({
                                 url: `https://translate.google.com/translate?tl=${twpConfig.get("targetLanguage")}&u=${encodeURIComponent(tabs[0].url)}`
@@ -454,11 +464,6 @@ twpConfig.onReady(function () {
                 case "moreOptions":
                     chrome.tabs.create({
                         url: chrome.runtime.getURL("/options/options.html")
-                    })
-                    break
-                case "donate":
-                    chrome.tabs.create({
-                        url: chrome.runtime.getURL("/options/options.html#donation")
                     })
                     break
                 default:
