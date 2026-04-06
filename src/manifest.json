@@ -2,7 +2,7 @@
     "manifest_version": 2,
     "default_locale": "en",
     "name": "宇宙翻译",
-    "description": "Let's experience immersive web translation, with bilingual simultaneous display and translation of only the important content.",
+    "description": "A smart web page translator powered by AI, Google and Yandex. Supports bilingual display, selected text translation, and customizable themes.",
     "version": "0.0.41",
     "homepage_url": "https://github.com/universe-translate/universe-translate",
 

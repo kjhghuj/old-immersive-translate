@@ -205,31 +205,42 @@ var pageTranslator = {}
 
 const translatingStyle = document.createElement("style");
 translatingStyle.textContent = `
-@keyframes twp-translating-pulse {
-    0% { background-color: rgba(72, 236, 233, 0.15); }
-    50% { background-color: rgba(72, 236, 233, 0.35); }
-    100% { background-color: rgba(72, 236, 233, 0.15); }
+@keyframes twp-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
-.twp-translating {
-    animation: twp-translating-pulse 1.2s ease-in-out infinite !important;
-    border-radius: 2px;
-    transition: background-color 0.3s ease;
+.twp-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    margin-left: 8px;
+    vertical-align: middle;
+    border: 2px solid rgba(72, 236, 233, 0.3);
+    border-top-color: #48ece9;
+    border-radius: 50%;
+    animation: twp-spin 0.8s linear infinite;
+    opacity: 0.8;
 }
 `;
 document.head.appendChild(translatingStyle);
 
 function markNodesTranslating(nodes) {
     for (const node of nodes) {
-        if (node && node.parentElement) {
-            node.parentElement.classList.add("twp-translating");
+        if (node && node.parentNode) {
+            const spinner = document.createElement("span");
+            spinner.className = "twp-spinner";
+            spinner.setAttribute("translate", "no");
+            node._twpSpinner = spinner;
+            node.parentNode.insertBefore(spinner, node.nextSibling);
         }
     }
 }
 
 function unmarkNodesTranslating(nodes) {
     for (const node of nodes) {
-        if (node && node.parentElement) {
-            node.parentElement.classList.remove("twp-translating");
+        if (node && node._twpSpinner) {
+            node._twpSpinner.remove();
+            delete node._twpSpinner;
         }
     }
 }
@@ -371,13 +382,11 @@ Promise.all([twpConfig.onReady(), getTabUrl()])
     function enableMutatinObserver() {
         disableMutatinObserver()
 
-        if (twpConfig.get("translateDynamicallyCreatedContent") == "yes") {
-            translateNewNodesTimerHandler = setInterval(translateNewNodes, 2000)
-            mutationObserver.observe(document.body, {
-                childList: true,
-                subtree: true
-            })
-        }
+        translateNewNodesTimerHandler = setInterval(translateNewNodes, 600)
+        mutationObserver.observe(document.body, {
+            childList: true,
+            subtree: true
+        })
     }
 
     function disableMutatinObserver() {
@@ -750,80 +759,46 @@ Promise.all([twpConfig.onReady(), getTabUrl()])
             if (piecesToTranslate && pageIsVisible) {
                 ;
                 await (async function () {
-                    function isInScreen(element) {
-                        const rect = element.getBoundingClientRect()
-                        if ((rect.top > 0 && rect.top <= window.innerHeight) || (rect.bottom > 0 && rect.bottom <= window.innerHeight)) {
-                            return true
-                        }
-                        return false
-                    }
-
-                    function topIsInScreen(element) {
-                        if (!element) {
-                            // debugger;
-                            return false
-                        }
-                        const rect = element.getBoundingClientRect()
-                        if (rect.top > 0 && rect.top <= window.innerHeight) {
-                            return true
-                        }
-                        return false
-                    }
-
-                    function bottomIsInScreen(element) {
-                        if (!element) {
-                            // debugger;
-                            return false
-                        }
-                        const rect = element.getBoundingClientRect()
-                        if (rect.bottom > 0 && rect.bottom <= window.innerHeight) {
-                            return true
-                        }
-                        return false
-                    }
-
-
                     const currentFooCount = fooCount
 
                     const piecesToTranslateNow = []
+                    const batchSize = 10
                     piecesToTranslate.forEach(ptt => {
                         if (!ptt.isTranslated) {
-                            
-                            if (bottomIsInScreen(ptt.topElement) || topIsInScreen(ptt.bottomElement)) {
-                                ptt.isTranslated = true
-                                piecesToTranslateNow.push(ptt)
-                            }
+                            ptt.isTranslated = true
+                            piecesToTranslateNow.push(ptt)
                         }
                     })
 
                     const attributesToTranslateNow = []
                     attributesToTranslate.forEach(ati => {
                         if (!ati.isTranslated) {
-                            if (isInScreen(ati.node)) {
-                                ati.isTranslated = true
-                                attributesToTranslateNow.push(ati)
-                            }
+                            ati.isTranslated = true
+                            attributesToTranslateNow.push(ati)
                         }
                     })
 
-                    if (piecesToTranslateNow.length > 0) {
-                        piecesToTranslateNow.forEach(ptt => markNodesTranslating(ptt.nodes));
-                        const results = await backgroundTranslateHTML(
-                                currentPageTranslatorService,
-                                currentTargetLanguage,
-                                piecesToTranslateNow.map(ptt => ptt.nodes.map(node => filterKeywordsInText(node.textContent))),
-                                dontSortResults
-                            )
-                            if (pageLanguageState === "translated" && currentFooCount === fooCount) {
-                                 await translateResults(piecesToTranslateNow, results,ctx)
-                                 piecesToTranslateNow.forEach(ptt => unmarkNodesTranslating(ptt.nodes));
-                                 // changed here
-                                 const isShowDualLanguage = twpConfig.get("isShowDualLanguage")==='no'?false:true;
+                    for (let batchStart = 0; batchStart < piecesToTranslateNow.length; batchStart += batchSize) {
+                        const batch = piecesToTranslateNow.slice(batchStart, batchStart + batchSize)
+                        batch.forEach(ptt => markNodesTranslating(ptt.nodes));
+                        try {
+                            const results = await backgroundTranslateHTML(
+                                    currentPageTranslatorService,
+                                    currentTargetLanguage,
+                                    batch.map(ptt => ptt.nodes.map(node => filterKeywordsInText(node.textContent))),
+                                    dontSortResults
+                                )
+                                if (pageLanguageState === "translated" && currentFooCount === fooCount) {
+                                     await translateResults(batch, results,ctx)
+                                     const isShowDualLanguage = twpConfig.get("isShowDualLanguage")==='no'?false:true;
 
-                                 if(isShowDualLanguage){
-                                    showCopyiedNodes()
-                                 }
-                            }
+                                     if(isShowDualLanguage){
+                                        showCopyiedNodes()
+                                     }
+                                }
+                        } finally {
+                            batch.forEach(ptt => unmarkNodesTranslating(ptt.nodes));
+                        }
                     }
 
                     if (attributesToTranslateNow.length > 0) {

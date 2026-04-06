@@ -1,9 +1,9 @@
 {
   "extensionName": {
-    "message": "Translate Web Pages"
+    "message": "Universe Translate"
   },
   "extensionDescription": {
-    "message": "Translate your page in real time using Google or Yandex."
+    "message": "A smart web page translator powered by AI, Google and Yandex. Supports bilingual display, selected text translation, and customizable themes."
   },
   "pageActionTitle": {
     "message": "Translate this page"

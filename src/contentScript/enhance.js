@@ -4,13 +4,16 @@ const enhanceOriginalDisplayValueAttributeName = "data-translationoriginaldispla
 const enhanceHtmlTagsInlineIgnore = ['BR', 'CODE', 'KBD', 'WBR'] // and input if type is submit or button, and pre depending on settings
 const enhanceHtmlTagsNoTranslate = ['TITLE', 'SCRIPT', 'STYLE', 'TEXTAREA', 'SVG', 'svg'] //TODO verificar porque 'svg' é com letras minúsculas
 let blockElements = [
-    'H1', 'H2', 'H3', 'H4', 'H5', 'H6','TABLE',  'OL', 'P','LI'
+    'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'TABLE', 'OL', 'P', 'LI',
+    'DIV', 'SECTION', 'ARTICLE', 'MAIN', 'HEADER', 'FOOTER', 'NAV', 'ASIDE',
+    'BLOCKQUOTE', 'FIGURE', 'FIGCAPTION', 'DETAILS', 'SUMMARY', 'ADDRESS',
+    'DD', 'DT', 'DL', 'FIELDSET', 'TR', 'TD', 'TH', 'CAPTION'
   ];
 if (twpConfig.get('translateTag_pre') !== 'yes') {
     blockElements.push('PRE')
 }
 
-const headingElements = ['h1' ];
+const headingElements = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
 
 const pdfSelectorsConfig =   {
     regex:

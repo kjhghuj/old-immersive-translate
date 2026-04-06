@@ -1,9 +1,9 @@
 {
   "extensionName": {
-    "message": "網頁翻譯器"
+    "message": "宇宙翻譯"
   },
   "extensionDescription": {
-    "message": "使用Google或Yandex即時翻譯你的網頁。"
+    "message": "支持 AI、Google、Yandex 多引擎的智能網頁翻譯工具，雙語對照顯示，支持選文翻譯和自定義主題。"
   },
   "pageActionTitle": {
     "message": "翻譯此頁面"

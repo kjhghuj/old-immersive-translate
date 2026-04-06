@@ -27,14 +27,19 @@ twpConfig.onReady(function () {
         const divs = [$("#main"),  $("#translations"),  $("#hotkeys"), $("#storage"), $("#others"), ]
         divs.forEach(element => {
             element.style.display = "none"
+            element.classList.remove("fade-in")
         })
 
         document.querySelectorAll("nav a").forEach(a => {
-            a.classList.remove("w3-light-grey")
+            a.classList.remove("w3-light-grey", "active-tab")
         })
 
         $(hash).style.display = "block"
-        $('a[href="' + hash + '"]').classList.add("w3-light-grey")
+        // Trigger reflow to restart animation
+        void $(hash).offsetWidth;
+        $(hash).classList.add("fade-in")
+        
+        $('a[href="' + hash + '"]').classList.add("w3-light-grey", "active-tab")
 
         let text
         if (hash === "#main") {
@@ -138,6 +143,22 @@ twpConfig.onReady(function () {
     }
     updateDarkMode()
 
+    function applyTheme(themeName) {
+        document.documentElement.setAttribute("data-theme", themeName)
+        document.querySelectorAll(".theme-swatch").forEach(s => {
+            s.classList.toggle("active", s.getAttribute("data-value") === themeName)
+        })
+    }
+
+    applyTheme(twpConfig.get("uiTheme") || "blue")
+
+    document.querySelectorAll(".theme-swatch").forEach(swatch => {
+        swatch.onclick = () => {
+            const themeName = swatch.getAttribute("data-value")
+            twpConfig.set("uiTheme", themeName)
+            applyTheme(themeName)
+        }
+    })
 
     // target languages
 

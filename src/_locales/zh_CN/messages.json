@@ -1,9 +1,9 @@
 {
   "extensionName": {
-    "message": "翻译网页"
+    "message": "宇宙翻译"
   },
   "extensionDescription": {
-    "message": "使用 Google 或 Yandex 实时翻译您的页面。"
+    "message": "支持 AI、Google、Yandex 多引擎的智能网页翻译工具，双语对照显示，支持选文翻译和自定义主题。"
   },
   "pageActionTitle": {
     "message": "翻译此页面"
