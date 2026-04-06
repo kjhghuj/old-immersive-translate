@@ -670,8 +670,8 @@ Promise.all([twpConfig.onReady(), getTabUrl()])
             style+='opacity: 0.4;'
           }else if(dualStyle==="maskxxxxxxxx"){
             style+="filter: blur(5px);transition: filter 0.5s ease;"
-            // add class immersive-translate-mask
-            fontNode.classList.add("immersive-translate-mask")
+            // add class universe-translate-mask
+            fontNode.classList.add("universe-translate-mask")
           }else if(dualStyle){
             style+=dualStyle;
           }

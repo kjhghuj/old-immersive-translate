@@ -620,7 +620,7 @@ function formatCopiedNode(copyNode,originalDisplay,ctx,pageSpecialConfig){
           dualStyle = pageSpecialConfig.style;
         }
         if (dualStyle === 'mask') {
-          copyNode.classList.add("immersive-translate-mask-next-sibling");
+          copyNode.classList.add("universe-translate-mask-next-sibling");
         }
       }
 }
@@ -629,7 +629,7 @@ function addStyle(){
   try{
 
   // important style
-  var css = '.immersive-translate-mask-next-sibling + *{filter:blur(5px);transition: filter 0.1s ease; } .immersive-translate-mask-next-sibling + *:hover {filter:none !important;}';
+  var css = '.universe-translate-mask-next-sibling + *{filter:blur(5px);transition: filter 0.1s ease; } .universe-translate-mask-next-sibling + *:hover {filter:none !important;}';
   var style = document.createElement('style');
   if (style.styleSheet) {
       style.styleSheet.cssText = css;

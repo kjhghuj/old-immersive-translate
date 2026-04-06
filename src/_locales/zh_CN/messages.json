@@ -572,7 +572,7 @@
     "message": "特殊页面翻译规则"
   },
   "optionsSpecialRulesNotes":{
-    "message":"这是一个高级选项，请确保你在编辑之前知道自己在做什么！ 这里添加的规则的优先级高于内置的<a href=\"https://github.com/immersive-translate/immersive-translate/blob/main/src/lib/specialRules.js\">规则</a><br>别被吓到，其实也不是很复杂啦，本质上就是一些css选择器，这里有一个<a href=\"https://github.com/immersive-translate/immersive-translate/wiki/Special-Rules-Tutorial\">教程</a>来帮助你。<br>我们最终目标是让这个扩展的默认规则更人性化，所以请考虑将你的规则贡献给<a href=\"https://github.com/immersive-translate/immersive-translate/blob/main/src/lib/specialRules.js\">本项目</a>。"
+    "message":"这是一个高级选项，请确保你在编辑之前知道自己在做什么！ 这里添加的规则的优先级高于内置的<a href=\"https://github.com/universe-translate/universe-translate/blob/main/src/lib/specialRules.js\">规则</a><br>别被吓到，其实也不是很复杂啦，本质上就是一些css选择器，这里有一个<a href=\"https://github.com/universe-translate/universe-translate/wiki/Special-Rules-Tutorial\">教程</a>来帮助你。<br>我们最终目标是让这个扩展的默认规则更人性化，所以请考虑将你的规则贡献给<a href=\"https://github.com/universe-translate/universe-translate/blob/main/src/lib/specialRules.js\">本项目</a>。"
   },
   "lblTelegram":{
     "message": "加Telegram群"

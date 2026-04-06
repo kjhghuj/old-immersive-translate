@@ -1,10 +1,10 @@
 {
     "manifest_version": 3,
     "default_locale": "en",
-    "name": "Immersive Translate",
+    "name": "宇宙翻译",
     "description": "Let's experience immersive web translation, with bilingual simultaneous display and translation of only the important content.",
     "version": "0.0.41",
-    "homepage_url": "https://github.com/immersive-translate/immersive-translate",
+    "homepage_url": "https://github.com/universe-translate/universe-translate",
 
     "commands": {
         "hotkey-toggle-translation": {

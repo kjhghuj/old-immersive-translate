@@ -791,7 +791,7 @@ twpConfig.onReady(function () {
 
         const element = document.createElement('a')
         element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(configJSON))
-        element.setAttribute('download', 'immersive-translate-backup_' + new Date().toISOString().replace(/T/, '_').replace(/\..+/, '').replace(/\:/g, ".") + ".txt")
+        element.setAttribute('download', 'twp-backup_' + new Date().toISOString().replace(/T/, '_').replace(/\..+/, '').replace(/:/g, ".") + ".txt")
 
         element.style.display = 'none'
         document.body.appendChild(element)
