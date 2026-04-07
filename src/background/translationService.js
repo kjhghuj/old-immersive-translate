@@ -1464,6 +1464,7 @@ const translationService = (function () {
     dontSaveInPersistentCache = false,
     dontSortResults = false
   ) => {
+    const aiServices = ["ai", "deepseek", "zhipu"];
     serviceName = twpLang.getAlternativeService(
       targetLanguage,
       serviceName,
@@ -1471,15 +1472,30 @@ const translationService = (function () {
     );
     console.log("[AI] translateHTML called, serviceName:", serviceName, "targetLang:", targetLanguage, "batchCount:", sourceArray2d.length);
     const service = serviceList.get(serviceName) || serviceList.get("google");
-    const result = await service.translate(
-      sourceLanguage,
-      targetLanguage,
-      sourceArray2d,
-      dontSaveInPersistentCache,
-      dontSortResults
-    );
-    console.log("[AI] translateHTML result:", JSON.stringify(result).slice(0, 500));
-    return result;
+    try {
+      const result = await service.translate(
+        sourceLanguage,
+        targetLanguage,
+        sourceArray2d,
+        dontSaveInPersistentCache,
+        dontSortResults
+      );
+      console.log("[AI] translateHTML result:", JSON.stringify(result).slice(0, 500));
+      return result;
+    } catch (e) {
+      if (aiServices.includes(serviceName)) {
+        console.warn(`[translateHTML] ${serviceName} failed, falling back to google:`, e.message);
+        const fallback = serviceList.get("google");
+        return await fallback.translate(
+          sourceLanguage,
+          targetLanguage,
+          sourceArray2d,
+          dontSaveInPersistentCache,
+          dontSortResults
+        );
+      }
+      throw e;
+    }
   };
 
   translationService.translateText = async (
@@ -1489,20 +1505,35 @@ const translationService = (function () {
     sourceArray,
     dontSaveInPersistentCache = false
   ) => {
+    const aiServices = ["ai", "deepseek", "zhipu"];
     serviceName = twpLang.getAlternativeService(
       targetLanguage,
       serviceName,
       false
     );
     const service = serviceList.get(serviceName) || serviceList.get("google");
-    return (
-      await service.translate(
-        sourceLanguage,
-        targetLanguage,
-        [sourceArray],
-        dontSaveInPersistentCache
-      )
-    )[0];
+    try {
+      return (
+        await service.translate(
+          sourceLanguage,
+          targetLanguage,
+          [sourceArray],
+          dontSaveInPersistentCache
+        )
+      )[0];
+    } catch (e) {
+      if (aiServices.includes(serviceName)) {
+        console.warn(`[translateText] ${serviceName} failed, falling back to google:`, e.message);
+        const fallback = serviceList.get("google");
+        return (await fallback.translate(
+          sourceLanguage,
+          targetLanguage,
+          [sourceArray],
+          dontSaveInPersistentCache
+        ))[0];
+      }
+      throw e;
+    }
   };
 
   translationService.translateSingleText = async (
@@ -1512,20 +1543,35 @@ const translationService = (function () {
     originalText,
     dontSaveInPersistentCache = false
   ) => {
+    const aiServices = ["ai", "deepseek", "zhipu"];
     serviceName = twpLang.getAlternativeService(
       targetLanguage,
       serviceName,
       false
     );
     const service = serviceList.get(serviceName) || serviceList.get("google");
-    return (
-      await service.translate(
-        sourceLanguage,
-        targetLanguage,
-        [[originalText]],
-        dontSaveInPersistentCache
-      )
-    )[0][0];
+    try {
+      return (
+        await service.translate(
+          sourceLanguage,
+          targetLanguage,
+          [[originalText]],
+          dontSaveInPersistentCache
+        )
+      )[0][0];
+    } catch (e) {
+      if (aiServices.includes(serviceName)) {
+        console.warn(`[translateSingleText] ${serviceName} failed, falling back to google:`, e.message);
+        const fallback = serviceList.get("google");
+        return (await fallback.translate(
+          sourceLanguage,
+          targetLanguage,
+          [[originalText]],
+          dontSaveInPersistentCache
+        ))[0][0];
+      }
+      throw e;
+    }
   };
 
   translationService.testAIConnection = async (aiConfig = {}) => {

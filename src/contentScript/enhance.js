@@ -208,8 +208,8 @@ function isBody(el) {
   return document.body === el;
 }
 function isDuplicatedChild(array,child){
-  for(const item of array){
-    if(item.contains(child)){
+  for(let i = array.length - 1; i >= 0; i--){
+    if(array[i].contains(child)){
       return true;
     }
   }
@@ -304,8 +304,13 @@ async function getNodesThatNeedToTranslate(root,ctx,options){
     if(contentContainers && Array.isArray(contentContainers)){
       containers = contentContainers;
     }  
+    const structuralElements = ['SECTION', 'ARTICLE', 'MAIN', 'HEADER', 'FOOTER', 'NAV', 'ASIDE'];
+    const contentBlockElements = blockElements.filter(tag => structuralElements.indexOf(tag) === -1);
+    const isSemanticContainer = containers.length === 1 && containers[0].nodeName && structuralElements.indexOf(containers[0].nodeName.toUpperCase()) !== -1;
+    const elementsToSearch = isSemanticContainer ? contentBlockElements : blockElements;
+
     for(const root of containers){
-      for(const blockTag of blockElements){
+      for(const blockTag of elementsToSearch){
         const paragraphs = root.querySelectorAll(blockTag.toLowerCase());
         for (const paragraph of paragraphs) {
           if(isValidNode(paragraph) && !isDuplicatedChild(allNodes,paragraph)){
@@ -314,12 +319,10 @@ async function getNodesThatNeedToTranslate(root,ctx,options){
         }
       }
       if(!pageSpecialConfig || !pageSpecialConfig.containerSelectors){
-       // add addition heading nodes
         for(const headingTag of headingElements){
           const headings = originalRoot.querySelectorAll(headingTag.toLowerCase());
           for (const heading of headings) {
             if(isValidNode(heading)){
-              // check if there is already exist in allNodes
               let isExist = false;
               for(const node of allNodes){
                 if(node === heading){
@@ -521,17 +524,28 @@ function getContainers(root,pageSpecialConfig){
     if(!(root && root.innerText)){
       return null
     }
-    // role=main
-    // const main = root.querySelector("[role=main]");
-    // if(main){
-    //   return main;
-    // }
     let selectedContainer;
     const matched =  root.innerText.match(/\S+/g);
     const numWordsOnPage =matched?matched.length:0;
+
+    const semanticCandidates = root.querySelectorAll('article, main, [role="main"]');
+    let bestSemantic = null;
+    let bestSemanticRatio = 0;
+    for (const candidate of semanticCandidates) {
+      const words = (candidate.innerText || '').match(/\S+/g);
+      const count = words ? words.length : 0;
+      const ratio = numWordsOnPage > 0 ? count / numWordsOnPage : 0;
+      if (ratio >= 0.3 && ratio <= 0.95 && ratio > bestSemanticRatio) {
+        bestSemantic = candidate;
+        bestSemanticRatio = ratio;
+      }
+    }
+    if (bestSemantic) {
+      return [bestSemantic];
+    }
+
     let ps = root.querySelectorAll("p");
 
-    // Find the paragraphs with the most words in it
     let pWithMostWords = root,
         highestWordCount = 0;
 
@@ -540,8 +554,8 @@ function getContainers(root,pageSpecialConfig){
     }
 
     ps.forEach(p => {
-        if(checkAgainstBlacklist(p, 3) // Make sure it's not in our blacklist
-        && p.offsetHeight !== 0) { //  Make sure it's visible on the regular page
+        if(checkAgainstBlacklist(p, 3)
+        && p.offsetHeight !== 0) {
             const myInnerText = p.innerText.match(/\S+/g);
             if(myInnerText) {
                 const wordCount = myInnerText.length;
@@ -554,7 +568,6 @@ function getContainers(root,pageSpecialConfig){
 
     });
 
-    // Keep selecting more generally until over 2/5th of the words on the page have been selected
     selectedContainer = pWithMostWords;
     let wordCountSelected = highestWordCount;
 
@@ -565,7 +578,6 @@ function getContainers(root,pageSpecialConfig){
         wordCountSelected = selectedContainer.innerText.match(/\S+/g).length;
     }
 
-    // Make sure a single p tag is not selected
     if(selectedContainer.tagName === "P") {
         selectedContainer = selectedContainer.parentElement;
     }

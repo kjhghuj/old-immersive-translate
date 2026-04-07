@@ -9,7 +9,7 @@ const twpConfig = (function () {
    * @typedef {"pageTranslatorService" | "textTranslatorService" | "ttsSpeed" | "enableDeepL" | "targetLanguage" | "targetLanguageTextTranslation" | "targetLanguages" | "alwaysTranslateSites" | "neverTranslateSites" | "sitesToTranslateWhenHovering" | "langsToTranslateWhenHovering" | "alwaysTranslateLangs" | "neverTranslateLangs" | "customDictionary" | "showTranslatePageContextMenu" | "showTranslateSelectedContextMenu" | "showButtonInTheAddressBar" | "showOriginalTextWhenHovering" | "showTranslateSelectedButton" | "showPopupMobile" | "useOldPopup" | "darkMode" | "popupBlueWhenSiteIsTranslated" | "popupPanelSection" | "showReleaseNotes" | "dontShowIfPageLangIsTargetLang" | "dontShowIfPageLangIsUnknown" | "dontShowIfSelectedTextIsTargetLang" | "dontShowIfSelectedTextIsUnknown" | "hotkeys" | "expandPanelTranslateSelectedText" | "translateTag_pre" | "dontSortResults" | "translateDynamicallyCreatedContent" | "autoTranslateWhenClickingALink" | "translateSelectedWhenPressTwice" | "translateTextOverMouseWhenPressTwice" | "translateClickingOnce" | "aiModelEndpoint" | "aiModelApiKey" | "aiModelName" | "aiModelTemperature" | "aiSystemPrompt" | "uiTheme" | "deepseekApiKey" | "zhipuApiKey" | "zhipuModel"} DefaultConfigNames
    */
   const defaultConfig = {
-    pageTranslatorService: "google", // google yandex
+    pageTranslatorService: "deepseek",
     textTranslatorService: "google", // google yandex bing deepl
     aiModelEndpoint: "https://api.openai.com/v1/chat/completions",
     aiModelApiKey: "",
@@ -38,7 +38,7 @@ const twpConfig = (function () {
     customDualStyle:"",
     showPopupMobile: "yes", // yes no threeFingersOnTheScreen
     useOldPopup: "yes",
-    darkMode: "auto", // auto yes no
+    darkMode: "no", // auto yes no
     popupBlueWhenSiteIsTranslated: "yes",
     popupPanelSection: 1,
     showReleaseNotes: "no",
