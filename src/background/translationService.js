@@ -1410,10 +1410,10 @@ const translationService = (function () {
     constructor() { super(); this.serviceName = "zhipu"; }
     async makeRequest(sourceLanguage, targetLanguage, requests) {
       const apiKey = String(twpConfig.get("zhipuApiKey") || "").trim();
-      const model = String(twpConfig.get("zhipuModel") || "glm-4.7").trim();
+      const model = String(twpConfig.get("zhipuModel") || "glm-4.6v-flash").trim();
       if (!apiKey) throw new Error("Zhipu API key is not configured");
       const overrides = {
-        endpoint: "https://open.bigmodel.cn/api/coding/paas/v4/chat/completions",
+        endpoint: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
         apiKey,
         model,
         temperature: 0.3,

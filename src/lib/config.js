@@ -50,7 +50,7 @@ const twpConfig = (function () {
     uiTheme: "blue",
     deepseekApiKey: "",
     zhipuApiKey: "",
-    zhipuModel: "glm-4.7",
+    zhipuModel: "glm-4.6v-flash",
 
   };
   const config = structuredClone(defaultConfig);

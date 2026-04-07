@@ -8,18 +8,21 @@
   "scripts": {
     "build": "npx gulp",
     "firefox": "npx gulp firefox-build ",
-    "chrome": "npx gulp chrome-build "
+    "chrome": "npx gulp chrome-build ",
+    "test": "jest --verbose"
   },
   "devDependencies": {
-    "@babel/core": "^7.19.3",
-    "@babel/preset-env": "^7.19.3",
+    "@babel/core": "^7.29.0",
+    "@babel/preset-env": "^7.29.2",
     "@types/chrome": "^0.0.197",
     "@types/firefox-webext-browser": "^94.0.1",
+    "babel-jest": "^30.3.0",
     "gulp": "^4.0.2",
     "gulp-babel": "^8.0.0",
     "gulp-concat": "^2.6.1",
     "gulp-replace": "^1.1.3",
     "gulp-sourcemaps": "^3.0.0",
-    "gulp-zip": "^5.1.0"
+    "gulp-zip": "^5.1.0",
+    "jest": "^30.3.0"
   }
 }

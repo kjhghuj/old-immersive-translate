@@ -594,7 +594,7 @@ twpConfig.onReady(function () {
         chrome.runtime.sendMessage({
             action: "testAIConnection",
             aiConfig: {
-                endpoint: "https://open.bigmodel.cn/api/coding/paas/v4/chat/completions",
+                endpoint: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
                 apiKey,
                 model,
                 temperature: 0.3,
