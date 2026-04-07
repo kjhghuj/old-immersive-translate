@@ -1471,31 +1471,31 @@ const translationService = (function () {
       true
     );
     console.log("[AI] translateHTML called, serviceName:", serviceName, "targetLang:", targetLanguage, "batchCount:", sourceArray2d.length);
-    const service = serviceList.get(serviceName) || serviceList.get("google");
-    try {
-      const result = await service.translate(
-        sourceLanguage,
-        targetLanguage,
-        sourceArray2d,
-        dontSaveInPersistentCache,
-        dontSortResults
-      );
-      console.log("[AI] translateHTML result:", JSON.stringify(result).slice(0, 500));
-      return result;
-    } catch (e) {
-      if (aiServices.includes(serviceName)) {
-        console.warn(`[translateHTML] ${serviceName} failed, falling back to google:`, e.message);
-        const fallback = serviceList.get("google");
-        return await fallback.translate(
-          sourceLanguage,
-          targetLanguage,
-          sourceArray2d,
-          dontSaveInPersistentCache,
-          dontSortResults
-        );
+    let effectiveService = serviceName;
+    if (aiServices.includes(serviceName)) {
+      try {
+        if (serviceName === "deepseek") {
+          if (!String(twpConfig.get("deepseekApiKey") || "").trim()) throw new Error("no key");
+        } else if (serviceName === "zhipu") {
+          if (!String(twpConfig.get("zhipuApiKey") || "").trim()) throw new Error("no key");
+        } else {
+          AIHelper.getSettings();
+        }
+      } catch (e) {
+        console.warn(`[translateHTML] ${serviceName} not configured, falling back to google`);
+        effectiveService = "google";
       }
-      throw e;
     }
+    const service = serviceList.get(effectiveService) || serviceList.get("google");
+    const result = await service.translate(
+      sourceLanguage,
+      targetLanguage,
+      sourceArray2d,
+      dontSaveInPersistentCache,
+      dontSortResults
+    );
+    console.log("[AI] translateHTML result:", JSON.stringify(result).slice(0, 500));
+    return result;
   };
 
   translationService.translateText = async (
@@ -1511,29 +1511,30 @@ const translationService = (function () {
       serviceName,
       false
     );
-    const service = serviceList.get(serviceName) || serviceList.get("google");
-    try {
-      return (
-        await service.translate(
-          sourceLanguage,
-          targetLanguage,
-          [sourceArray],
-          dontSaveInPersistentCache
-        )
-      )[0];
-    } catch (e) {
-      if (aiServices.includes(serviceName)) {
-        console.warn(`[translateText] ${serviceName} failed, falling back to google:`, e.message);
-        const fallback = serviceList.get("google");
-        return (await fallback.translate(
-          sourceLanguage,
-          targetLanguage,
-          [sourceArray],
-          dontSaveInPersistentCache
-        ))[0];
+    let effectiveService = serviceName;
+    if (aiServices.includes(serviceName)) {
+      try {
+        if (serviceName === "deepseek") {
+          if (!String(twpConfig.get("deepseekApiKey") || "").trim()) throw new Error("no key");
+        } else if (serviceName === "zhipu") {
+          if (!String(twpConfig.get("zhipuApiKey") || "").trim()) throw new Error("no key");
+        } else {
+          AIHelper.getSettings();
+        }
+      } catch (e) {
+        console.warn(`[translateText] ${serviceName} not configured, falling back to google`);
+        effectiveService = "google";
       }
-      throw e;
     }
+    const service = serviceList.get(effectiveService) || serviceList.get("google");
+    return (
+      await service.translate(
+        sourceLanguage,
+        targetLanguage,
+        [sourceArray],
+        dontSaveInPersistentCache
+      )
+    )[0];
   };
 
   translationService.translateSingleText = async (
@@ -1549,29 +1550,30 @@ const translationService = (function () {
       serviceName,
       false
     );
-    const service = serviceList.get(serviceName) || serviceList.get("google");
-    try {
-      return (
-        await service.translate(
-          sourceLanguage,
-          targetLanguage,
-          [[originalText]],
-          dontSaveInPersistentCache
-        )
-      )[0][0];
-    } catch (e) {
-      if (aiServices.includes(serviceName)) {
-        console.warn(`[translateSingleText] ${serviceName} failed, falling back to google:`, e.message);
-        const fallback = serviceList.get("google");
-        return (await fallback.translate(
-          sourceLanguage,
-          targetLanguage,
-          [[originalText]],
-          dontSaveInPersistentCache
-        ))[0][0];
+    let effectiveService = serviceName;
+    if (aiServices.includes(serviceName)) {
+      try {
+        if (serviceName === "deepseek") {
+          if (!String(twpConfig.get("deepseekApiKey") || "").trim()) throw new Error("no key");
+        } else if (serviceName === "zhipu") {
+          if (!String(twpConfig.get("zhipuApiKey") || "").trim()) throw new Error("no key");
+        } else {
+          AIHelper.getSettings();
+        }
+      } catch (e) {
+        console.warn(`[translateSingleText] ${serviceName} not configured, falling back to google`);
+        effectiveService = "google";
       }
-      throw e;
     }
+    const service = serviceList.get(effectiveService) || serviceList.get("google");
+    return (
+      await service.translate(
+        sourceLanguage,
+        targetLanguage,
+        [[originalText]],
+        dontSaveInPersistentCache
+      )
+    )[0][0];
   };
 
   translationService.testAIConnection = async (aiConfig = {}) => {
