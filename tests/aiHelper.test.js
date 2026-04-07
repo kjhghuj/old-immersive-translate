@@ -37,6 +37,13 @@ function getSettings(overrides = {}) {
   return { endpoint, apiKey, model, temperature, systemPrompt };
 }
 
+function getPrompt(sourceLanguage, targetLanguage, overrides = {}) {
+  const settings = getSettings(overrides);
+  return settings.systemPrompt
+    .replace(/\{sourceLanguage\}/g, sourceLanguage || "auto")
+    .replace(/\{targetLanguage\}/g, targetLanguage);
+}
+
 function parseRequestText(originalText) {
   try {
     const value = JSON.parse(originalText);
@@ -247,6 +254,34 @@ describe("AIHelper", () => {
       expect(s.apiKey).toBe("cfg-key");
       expect(s.model).toBe("cfg-model");
       expect(s.temperature).toBe(0.7);
+    });
+  });
+
+  describe("getPrompt", () => {
+    test("uses override credentials and config prompt", () => {
+      const prompt = getPrompt("en", "zh-CN", {
+        endpoint: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+        apiKey: "zhipu-key",
+        model: "glm-4.6v-flash",
+        _config: {
+          aiSystemPrompt: "Translate from {sourceLanguage} to {targetLanguage}.",
+        },
+      });
+      expect(prompt).toBe("Translate from en to zh-CN.");
+    });
+
+    test("does not require generic aiModelApiKey when overrides provide api key", () => {
+      expect(() =>
+        getPrompt("en", "zh-CN", {
+          endpoint: "https://api.deepseek.com/v1/chat/completions",
+          apiKey: "deepseek-key",
+          model: "deepseek-chat",
+          _config: {
+            aiModelApiKey: "",
+            aiSystemPrompt: "Translate to {targetLanguage}.",
+          },
+        })
+      ).not.toThrow();
     });
   });
 

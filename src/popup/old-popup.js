@@ -4,7 +4,7 @@ var $ = document.querySelector.bind(document)
 
 twpConfig.onReady(function () {
     if (!navigator.userAgent.includes("Firefox")) {
-        document.body.style.minWidth = "300px"
+        document.body.style.minWidth = "360px"
     }
 
     // get elements
@@ -34,9 +34,6 @@ twpConfig.onReady(function () {
     const btnOptions = document.getElementById("btnOptions")
 
     $("#btnOptionB").innerHTML += ' <i class="arrow down"></i>'
-
-    var cStyle = getComputedStyle(document.querySelector("#btnOptionB"))
-    btnOptions.style.width = (parseInt(cStyle.width) + 0) + "px"
 
     // Avoid outputting the error message "Receiving end does not exist" in the Console.
     function checkedLastError() {
@@ -85,36 +82,11 @@ twpConfig.onReady(function () {
 
 
     function enableDarkMode() {
-        if (!document.getElementById("darkModeElement")) {
-            const el = document.createElement("style")
-            el.setAttribute("id", "darkModeElement")
-            el.setAttribute("rel", "stylesheet")
-            el.textContent = `
-            * {
-                scrollbar-color: #202324 #454a4d;
-            }
-            
-            body {
-                color: #e8e6e3 !important;
-                background-color: #181a1b !important;
-                border: 1px solid #454a4d;
-            }
-            
-            
-            #selectTargetLanguage, select, option, #btnReset, #btnRestore, #btnTryAgain, #btnOptionB {
-                color: #55a9ed !important;
-                background-color: #181a1b !important;
-                border: 1px solid #454a4d !important;
-            }
-            `
-            document.head.appendChild(el)
-        }
+        document.documentElement.setAttribute("data-theme", "dark")
     }
 
     function disableDarkMode() {
-        if (document.getElementById("darkModeElement")) {
-            document.getElementById("darkModeElement").remove()
-        }
+        document.documentElement.removeAttribute("data-theme")
     }
 
     if (twpConfig.get("darkMode") == "auto") {
@@ -192,6 +164,8 @@ twpConfig.onReady(function () {
         switch (serviceName) {
             case "yandex":
                 return "/icons/yandex-translate-32.png"
+            case "deepseek":
+            case "zhipu":
             case "ai":
                 return "/icons/icon-32.png"
             default:
@@ -201,10 +175,11 @@ twpConfig.onReady(function () {
 
     function updateInterface() {
         const externalSiteOption = $("#btnOptions option[value='translateInExternalSite']")
+        const aiLikeServices = ["ai", "deepseek", "zhipu"]
         if (currentPageTranslatorService == "yandex") {
             $("#btnOptions option[value='translateInExternalSite']").textContent = chrome.i18n.getMessage("msgOpenOnYandexTranslator")
             externalSiteOption.hidden = false
-        } else if (currentPageTranslatorService === "ai") {
+        } else if (aiLikeServices.indexOf(currentPageTranslatorService) !== -1) {
             externalSiteOption.textContent = chrome.i18n.getMessage("btnMoreOptions")
             externalSiteOption.hidden = true
         } else { // google
@@ -340,6 +315,12 @@ twpConfig.onReady(function () {
         updateInterface()
     }
 
+    $("#btnReset").onclick = e => {
+        showSelectTargetLanguage = false
+        selectTargetLanguage.value = twpConfig.get("targetLanguages")[0]
+        updateInterface()
+    }
+
     $("#btnRestore").onclick = e => {
         currentPageLanguageState = "original"
 
@@ -355,6 +336,7 @@ twpConfig.onReady(function () {
         updateInterface()
     }
     $("#moreOptions").onclick = e => {
+      e.preventDefault()
       chrome.tabs.create({
           url: chrome.runtime.getURL("/options/options.html")
       })

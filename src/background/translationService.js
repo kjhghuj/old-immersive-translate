@@ -1174,8 +1174,8 @@ const translationService = (function () {
       return "";
     }
 
-    static getPrompt(sourceLanguage, targetLanguage) {
-      const settings = AIHelper.getSettings();
+    static getPrompt(sourceLanguage, targetLanguage, overrides = {}) {
+      const settings = AIHelper.getSettings(overrides);
       return settings.systemPrompt
         .replace(/\{sourceLanguage\}/g, sourceLanguage || "auto")
         .replace(/\{targetLanguage\}/g, targetLanguage);
@@ -1374,7 +1374,7 @@ const translationService = (function () {
       const settings = AIHelper.getSettings(overrides);
       const requestPayload = requests.map(info => AIHelper.parseRequestText(info.originalText));
       const data = await AIHelper.requestChatCompletion(settings, [
-        { role: "system", content: AIHelper.getPrompt(sourceLanguage, targetLanguage) },
+        { role: "system", content: AIHelper.getPrompt(sourceLanguage, targetLanguage, overrides) },
         { role: "user", content: JSON.stringify({
           task: "Translate each string in every item to the target language.",
           rules: [
@@ -1421,7 +1421,7 @@ const translationService = (function () {
       const settings = AIHelper.getSettings(overrides);
       const requestPayload = requests.map(info => AIHelper.parseRequestText(info.originalText));
       const data = await AIHelper.requestChatCompletion(settings, [
-        { role: "system", content: AIHelper.getPrompt(sourceLanguage, targetLanguage) },
+        { role: "system", content: AIHelper.getPrompt(sourceLanguage, targetLanguage, overrides) },
         { role: "user", content: JSON.stringify({
           task: "Translate each string in every item to the target language.",
           rules: [

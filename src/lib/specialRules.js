@@ -321,6 +321,16 @@ const specialRules = [
     "detectLanguage":true
 
   },{
+    "name":"blogGoogle",
+    "hostname":"blog.google",
+    "containerSelectors":"article.uni-article-wrapper",
+    "selectors":[
+      ".article-meta__author-info",
+      ".article-summary__btn-container",
+      ".uni-social-share__button"
+    ]
+
+  },{
     "hostname":"www.urbandictionary.com",
     "selectors":["div.meaning","div.example"],
   },{
