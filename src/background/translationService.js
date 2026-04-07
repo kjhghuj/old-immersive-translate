@@ -1268,11 +1268,13 @@ const translationService = (function () {
           }));
         },
         function cbTransformResponse(result, dontSortResults) {
+          if (result == null) return [""];
           try {
-            return AIHelper.normalizeResultArray(JSON.parse(result));
+            const parsed = JSON.parse(result);
+            if (Array.isArray(parsed)) return parsed;
+            return [String(result)];
           } catch (e) {
-            console.error("Failed to parse AI translation response", e);
-            return [String(result ?? "")];
+            return [String(result)];
           }
         }
       );
