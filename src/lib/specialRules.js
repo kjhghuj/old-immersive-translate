@@ -325,9 +325,17 @@ const specialRules = [
     "hostname":"blog.google",
     "containerSelectors":"article.uni-article-wrapper",
     "selectors":[
+      ".uni-main-menu__item--desktop",
+      ".header__cta-link",
       ".article-meta__author-info",
+      ".article-meta__abstract-text",
       ".article-summary__btn-container",
-      ".uni-social-share__button"
+      ".uni-social-share__button",
+      ".audio-player-tts__text-content--title",
+      ".audio-player-tts__duration",
+      ".audio-player-tts__disclaimer--copy",
+      ".glue-cookie-notification-bar__text",
+      ".glue-cookie-notification-bar__accept"
     ]
 
   },{

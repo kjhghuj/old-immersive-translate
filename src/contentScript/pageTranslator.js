@@ -362,6 +362,124 @@ Promise.all([twpConfig.onReady(), getTabUrl()])
     let removedNodes = []
 
     let nodesToRestore = []
+    let attributesToRestore = []
+
+    const pageTranslationCache = {
+        textNodes: new WeakMap(),
+        attributes: new WeakMap(),
+        titles: new Map()
+    }
+    const visibleTranslateMargin = 0
+
+    function getCurrentPageCacheKey() {
+        return [
+            currentPageTranslatorService || "google",
+            currentTargetLanguage || twpConfig.get("targetLanguage") || "und",
+            dontSortResults ? "1" : "0"
+        ].join("|")
+    }
+
+    function getOrCreateTextNodeCacheEntry(originalNode) {
+        let entry = pageTranslationCache.textNodes.get(originalNode)
+        if (!entry) {
+            entry = {
+                originalNode,
+                originalText: originalNode.textContent,
+                translatedNode: null,
+                translations: new Map()
+            }
+            pageTranslationCache.textNodes.set(originalNode, entry)
+        }
+        if (typeof entry.originalText !== "string") {
+            entry.originalText = originalNode.textContent
+        }
+        return entry
+    }
+
+    function getOrCreateAttributeCacheEntry(node) {
+        let entry = pageTranslationCache.attributes.get(node)
+        if (!entry) {
+            entry = {
+                originals: new Map(),
+                translations: new Map()
+            }
+            pageTranslationCache.attributes.set(node, entry)
+        }
+        return entry
+    }
+
+    function rememberNodeToRestore(originalNode, translatedNode) {
+        const existing = nodesToRestore.find(ntr => ntr.originalNode === originalNode)
+        if (existing) {
+            existing.translatedNode = translatedNode
+        } else {
+            nodesToRestore.push({
+                originalNode,
+                translatedNode
+            })
+        }
+    }
+
+    function rememberAttributeToRestore(node, attrName, originalValue) {
+        const existing = attributesToRestore.find(atr => atr.node === node && atr.attrName === attrName)
+        if (existing) {
+            existing.original = originalValue
+        } else {
+            attributesToRestore.push({
+                node,
+                attrName,
+                original: originalValue
+            })
+        }
+    }
+
+    function isRectVisible(rect) {
+        if (!rect) return false
+        if (rect.width === 0 && rect.height === 0) return false
+        return (
+            rect.bottom >= -visibleTranslateMargin &&
+            rect.top <= window.innerHeight + visibleTranslateMargin &&
+            rect.right >= -visibleTranslateMargin &&
+            rect.left <= window.innerWidth + visibleTranslateMargin
+        )
+    }
+
+    function isElementVisibleForTranslation(element) {
+        if (!(element && element.isConnected && element.getBoundingClientRect)) return false
+        return isRectVisible(element.getBoundingClientRect())
+    }
+
+    function isPieceVisible(pieceInfo) {
+        const anchors = [pieceInfo.parentElement, pieceInfo.topElement, pieceInfo.bottomElement]
+            .filter((element, index, arr) => element && arr.indexOf(element) === index)
+        if (anchors.length === 0) return true
+        return anchors.some(isElementVisibleForTranslation)
+    }
+
+    function getCachedPieceResult(pieceInfo) {
+        const cacheKey = getCurrentPageCacheKey()
+        const results = []
+        for (const node of pieceInfo.nodes) {
+            const entry = pageTranslationCache.textNodes.get(node)
+            if (!entry || entry.originalText !== node.textContent) {
+                return null
+            }
+            const translatedText = entry.translations.get(cacheKey)
+            if (typeof translatedText !== "string") {
+                return null
+            }
+            results.push(translatedText)
+        }
+        return results
+    }
+
+    function getCachedAttributeResult(attributeInfo) {
+        if (!(attributeInfo.node && attributeInfo.node.isConnected)) return null
+        const entry = pageTranslationCache.attributes.get(attributeInfo.node)
+        if (!entry) return null
+        if (entry.originals.get(attributeInfo.attrName) !== attributeInfo.original) return null
+        return entry.translations.get(`${attributeInfo.attrName}|${getCurrentPageCacheKey()}`) || null
+    }
 
     async function translateNewNodes() {
         try {
@@ -385,6 +503,16 @@ Promise.all([twpConfig.onReady(), getTabUrl()])
 
                     if (!finded) {
                         piecesToTranslate.push(newPiecesToTranslate[i])
+                    }
+                }
+
+                const newAttributesToTranslate = getAttributesToTranslate(nn)
+                for (const ati of newAttributesToTranslate) {
+                    const exists = attributesToTranslate.some(existing =>
+                        existing.node === ati.node && existing.attrName === ati.attrName
+                    )
+                    if (!exists) {
+                        attributesToTranslate.push(ati)
                     }
                 }
             }
@@ -624,7 +752,7 @@ Promise.all([twpConfig.onReady(), getTabUrl()])
         const altElements = root.querySelectorAll('area[alt], img[alt], input[type="image"][alt]')
         // const valueElements = root.querySelectorAll('input[type="button"], input[type="submit"], input[type="reset"]')
         const valueElements = [];
-        const titleElements = root.querySelectorAll("body [title]")
+        const titleElements = root.querySelectorAll("[title]")
 
         function hasNoTranslate(elem) {
             if (elem && (elem.classList.contains("notranslate") || elem.getAttribute("translate") === "no")) {
@@ -738,6 +866,36 @@ Promise.all([twpConfig.onReady(), getTabUrl()])
         return fontNode
     }
 
+    function applyTranslatedTextNode(originalNode, translatedText, ctx) {
+        if (!originalNode) return null
+
+        const entry = getOrCreateTextNodeCacheEntry(originalNode)
+        const cacheKey = getCurrentPageCacheKey()
+        entry.translations.set(cacheKey, translatedText)
+
+        if (!(entry.translatedNode && entry.translatedNode.nodeType === 1)) {
+            entry.translatedNode = encapsulateTextNode(originalNode, ctx)
+        } else if (originalNode.isConnected) {
+            originalNode.replaceWith(entry.translatedNode)
+        }
+
+        showOriginal.add(entry.translatedNode, entry.originalText)
+        entry.translatedNode.textContent = translatedText
+        rememberNodeToRestore(entry.originalNode, entry.translatedNode)
+        return entry.translatedNode
+    }
+
+    function applyTranslatedAttribute(attributeInfo, translatedText) {
+        if (!(attributeInfo.node && attributeInfo.node.isConnected)) return
+
+        const entry = getOrCreateAttributeCacheEntry(attributeInfo.node)
+        entry.originals.set(attributeInfo.attrName, attributeInfo.original)
+        entry.translations.set(`${attributeInfo.attrName}|${getCurrentPageCacheKey()}`, translatedText)
+
+        rememberAttributeToRestore(attributeInfo.node, attributeInfo.attrName, attributeInfo.original)
+        attributeInfo.node.setAttribute(attributeInfo.attrName, translatedText)
+    }
+
     async function translateResults(piecesToTranslateNow, results,ctx) {
         if (dontSortResults) {
             for (let i = 0; i < results.length; i++) {
@@ -752,16 +910,9 @@ Promise.all([twpConfig.onReady(), getTabUrl()])
                             translated += restResults.join(" ");
                         }
 
-                        nodes[j] = encapsulateTextNode(nodes[j],ctx)
-
-                        showOriginal.add(nodes[j])
-                        nodesToRestore.push({
-                            node: nodes[j],
-                            original: nodes[j].textContent
-                        })
-
-                       const result = await handleCustomWords(translated, nodes[j].textContent, currentPageTranslatorService, currentTargetLanguage);
-                            nodes[j].textContent = result
+                        const originalText = nodes[j].textContent
+                        const result = await handleCustomWords(translated, originalText, currentPageTranslatorService, currentTargetLanguage);
+                        applyTranslatedTextNode(nodes[j], result, ctx)
                     }
                 }
             }
@@ -772,16 +923,9 @@ Promise.all([twpConfig.onReady(), getTabUrl()])
                         const nodes = piecesToTranslateNow[i].nodes
                         const translated = results[i][j] + " "
 
-                        nodes[j] = encapsulateTextNode(nodes[j],ctx)
-
-                        showOriginal.add(nodes[j])
-                        nodesToRestore.push({
-                            node: nodes[j],
-                            original: nodes[j].textContent
-                        })
-
-                      const result =  await handleCustomWords(translated, nodes[j].textContent, currentPageTranslatorService, currentTargetLanguage);
-                      nodes[j].textContent = result
+                      const originalText = nodes[j].textContent
+                      const result =  await handleCustomWords(translated, originalText, currentPageTranslatorService, currentTargetLanguage);
+                      applyTranslatedTextNode(nodes[j], result, ctx)
                         
                     }
                 }
@@ -793,7 +937,7 @@ Promise.all([twpConfig.onReady(), getTabUrl()])
     function translateAttributes(attributesToTranslateNow, results) {
         for (const i in attributesToTranslateNow) {
             const ati = attributesToTranslateNow[i]
-            ati.node.setAttribute(ati.attrName, results[i])
+            applyTranslatedAttribute(ati, results[i])
         }
     }
 
@@ -807,66 +951,117 @@ Promise.all([twpConfig.onReady(), getTabUrl()])
                     const piecesToTranslateNow = []
                     const batchSize = 10
                     piecesToTranslate.forEach(ptt => {
-                        if (!ptt.isTranslated) {
+                        if (!ptt.isTranslated && isPieceVisible(ptt)) {
                             piecesToTranslateNow.push(ptt)
                         }
                     })
 
                     const attributesToTranslateNow = []
                     attributesToTranslate.forEach(ati => {
-                        if (!ati.isTranslated) {
+                        if (!ati.isTranslated && isElementVisibleForTranslation(ati.node)) {
                             attributesToTranslateNow.push(ati)
                         }
                     })
 
                     for (let batchStart = 0; batchStart < piecesToTranslateNow.length; batchStart += batchSize) {
                         const batch = piecesToTranslateNow.slice(batchStart, batchStart + batchSize)
+                        const cachedBatch = []
+                        const requestBatch = []
                         batch.forEach(ptt => {
+                            const cachedResult = getCachedPieceResult(ptt)
                             ptt.isTranslated = true
-                            markNodesTranslating(ptt.nodes)
+                            if (cachedResult) {
+                                cachedBatch.push({
+                                    piece: ptt,
+                                    result: cachedResult
+                                })
+                            } else {
+                                requestBatch.push(ptt)
+                                markNodesTranslating(ptt.nodes)
+                            }
                         });
+
+                        if (cachedBatch.length > 0 && pageLanguageState === "translated" && currentFooCount === fooCount) {
+                            await translateResults(
+                                cachedBatch.map(item => item.piece),
+                                cachedBatch.map(item => item.result),
+                                ctx
+                            )
+                            const isShowDualLanguage = twpConfig.get("isShowDualLanguage")==='no'?false:true;
+                            if (isShowDualLanguage) {
+                                showCopyiedNodes()
+                            }
+                        }
+
+                        if (requestBatch.length === 0) {
+                            continue
+                        }
+
                         try {
                             const results = await backgroundTranslateHTML(
                                     currentPageTranslatorService,
                                     currentTargetLanguage,
-                                    batch.map(ptt => ptt.nodes.map(node => filterKeywordsInText(node.textContent))),
+                                    requestBatch.map(ptt => ptt.nodes.map(node => filterKeywordsInText(node.textContent))),
                                     dontSortResults
                                 )
                                 if (pageLanguageState === "translated" && currentFooCount === fooCount) {
-                                     await translateResults(batch, results,ctx)
+                                     await translateResults(requestBatch, results,ctx)
                                      const isShowDualLanguage = twpConfig.get("isShowDualLanguage")==='no'?false:true;
 
                                      if(isShowDualLanguage){
                                         showCopyiedNodes()
                                      }
                                 } else {
-                                    batch.forEach(ptt => { ptt.isTranslated = false; })
+                                    requestBatch.forEach(ptt => { ptt.isTranslated = false; })
                                 }
                         } catch (e) {
-                            batch.forEach(ptt => { ptt.isTranslated = false; })
+                            requestBatch.forEach(ptt => { ptt.isTranslated = false; })
                             console.error(e)
                         } finally {
-                            batch.forEach(ptt => unmarkNodesTranslating(ptt.nodes));
+                            requestBatch.forEach(ptt => unmarkNodesTranslating(ptt.nodes));
                         }
                     }
 
                     if (attributesToTranslateNow.length > 0) {
-                        attributesToTranslateNow.forEach(ati => { ati.isTranslated = true; })
-                        backgroundTranslateText(
+                        const cachedAttributes = []
+                        const requestAttributes = []
+                        attributesToTranslateNow.forEach(ati => {
+                            const cachedResult = getCachedAttributeResult(ati)
+                            ati.isTranslated = true;
+                            if (cachedResult != null) {
+                                cachedAttributes.push({
+                                    attribute: ati,
+                                    result: cachedResult
+                                })
+                            } else {
+                                requestAttributes.push(ati)
+                            }
+                        })
+
+                        if (cachedAttributes.length > 0 && pageLanguageState === "translated" && currentFooCount === fooCount) {
+                            translateAttributes(
+                                cachedAttributes.map(item => item.attribute),
+                                cachedAttributes.map(item => item.result)
+                            )
+                        }
+
+                        if (requestAttributes.length > 0) {
+                            backgroundTranslateText(
                                 currentPageTranslatorService,
                                 currentTargetLanguage,
-                                attributesToTranslateNow.map(ati => ati.original)
+                                requestAttributes.map(ati => ati.original)
                             )
                             .then(results => {
                                 if (pageLanguageState === "translated" && currentFooCount === fooCount) {
-                                    translateAttributes(attributesToTranslateNow, results)
+                                    translateAttributes(requestAttributes, results)
                                 } else {
-                                    attributesToTranslateNow.forEach(ati => { ati.isTranslated = false; })
+                                    requestAttributes.forEach(ati => { ati.isTranslated = false; })
                                 }
                             })
                             .catch(() => {
-                                attributesToTranslateNow.forEach(ati => { ati.isTranslated = false; })
+                                requestAttributes.forEach(ati => { ati.isTranslated = false; })
                             })
+                        }
                     }
                 })()
             }
@@ -888,10 +1083,17 @@ Promise.all([twpConfig.onReady(), getTabUrl()])
         }
         if (document.title.trim().length < 1) return;
         originalPageTitle = document.title
+        const cacheKey = `${getCurrentPageCacheKey()}|${originalPageTitle}`
+        const cachedTitle = pageTranslationCache.titles.get(cacheKey)
+        if (cachedTitle) {
+            document.title = cachedTitle
+            return
+        }
 
         backgroundTranslateSingleText(currentPageTranslatorService, currentTargetLanguage, originalPageTitle)
             .then(result => {
                 if (result) {
+                    pageTranslationCache.titles.set(cacheKey, result)
                     document.title = result
                 }
             })
@@ -969,16 +1171,19 @@ Promise.all([twpConfig.onReady(), getTabUrl()])
 
 
         for (const ntr of nodesToRestore) {
-            ntr.node.replaceWith(ntr.original)
+            if (ntr.translatedNode && ntr.translatedNode.isConnected) {
+                ntr.translatedNode.replaceWith(ntr.originalNode)
+            }
         }
         nodesToRestore = []
 
-        //TODO não restaurar atributos que foram modificados
-        for (const ati of attributesToTranslate) {
-            if (ati.isTranslated) {
-                ati.node.setAttribute(ati.attrName, ati.original)
+        for (const atr of attributesToRestore) {
+            if (atr.node && atr.node.isConnected) {
+                atr.node.setAttribute(atr.attrName, atr.original)
             }
         }
+        attributesToRestore = []
+
         attributesToTranslate = []
     }
 
@@ -1210,4 +1415,3 @@ function detectPageLanguage() {
   })
 
 }
-

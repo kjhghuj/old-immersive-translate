@@ -99,13 +99,13 @@ twpConfig.onReady(function () {
         hideOriginalText()
     }
 
-    showOriginal.add = function (node) {
+    showOriginal.add = function (node, originalText = null) {
         if (platformInfo.isMobile.any) return;
 
         if (node && nodesToShowOriginal.indexOf(node) === -1) {
             nodesToShowOriginal.push({
                 node: node,
-                original: node.textContent
+                original: originalText == null ? node.textContent : originalText
             })
             node.addEventListener("mouseenter", onMouseEnter)
             node.addEventListener("mouseout", onMouseOut)
